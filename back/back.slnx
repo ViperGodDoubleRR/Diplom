@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/ApiGateway/" />
+  <Folder Name="/Services/" />
+  <Folder Name="/Services/AuthService/">
+    <Project Path="AuthService.Api/AuthService.Api.csproj" />
+    <Project Path="AuthService.Application/AuthService.Application.csproj" />
+    <Project Path="AuthService.Domain/AuthService.Domain.csproj" />
+    <Project Path="AuthService.Infrastructure/AuthService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Services/RegService/">
+    <Project Path="RegService.Api/RegService.Api.csproj" Id="284c48d9-6f78-47ab-abce-d9307fdaf798" />
+    <Project Path="RegService.Application/RegService.Application.csproj" Id="3388b8a5-908c-426a-a6de-93a283759a23" />
+    <Project Path="RegService.Domain/RegService.Domain.csproj" Id="2d4144b8-7bc4-43e2-b4e4-3568361518d6" />
+    <Project Path="RegService.Infrastructure/RegService.Infrastructure.csproj" Id="845805ce-4e1e-42f5-92e2-c94463dc73ef" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="Shared.Application/Shared.Application.csproj" Id="63c9b2be-6db3-4f82-aa58-80a872b2d0fc" />
+    <Project Path="Shared.MinIO/Shared.MinIO.csproj" Id="e08439a3-d274-4e31-a2cf-828b269e9241" />
+    <Project Path="Shared.RabbitMQ/Shared.RabbitMQ.csproj" Id="d1f94490-e9da-483a-9c6b-02252f28b050" />
+    <Project Path="Shared.Redis/Shared.Redis.csproj" Id="e2623de8-4b70-40bb-96a9-eae62e060814" />
+  </Folder>
+  <Folder Name="/Элементы решения/">
+    <File Path="global.json" />
+  </Folder>
+</Solution>

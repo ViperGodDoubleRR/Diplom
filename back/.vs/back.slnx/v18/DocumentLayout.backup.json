@@ -1,0 +1,613 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\FullStack\\Neura\\back\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{48F5E42B-220B-06E1-EF7D-634A1588BC5E}|\u042D\u043B\u0435\u043C\u0435\u043D\u0442\u044B \u0440\u0435\u0448\u0435\u043D\u0438\u044F{48F5E42B-220B-06E1-EF7D-634A1588BC5E}|D:\\FullStack\\Neura\\back\\global.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{48F5E42B-220B-06E1-EF7D-634A1588BC5E}|\u042D\u043B\u0435\u043C\u0435\u043D\u0442\u044B \u0440\u0435\u0448\u0435\u043D\u0438\u044F{48F5E42B-220B-06E1-EF7D-634A1588BC5E}|solutionrelative:global.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E2623DE8-4B70-40BB-96A9-EAE62E060814}|Shared.Redis\\Shared.Redis.csproj|d:\\fullstack\\neura\\back\\shared.redis\\shared.redis.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{E2623DE8-4B70-40BB-96A9-EAE62E060814}|Shared.Redis\\Shared.Redis.csproj|solutionrelative:shared.redis\\shared.redis.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D1F94490-E9DA-483A-9C6B-02252F28B050}|Shared.RabbitMQ\\Shared.RabbitMQ.csproj|d:\\fullstack\\neura\\back\\shared.rabbitmq\\shared.rabbitmq.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{D1F94490-E9DA-483A-9C6B-02252F28B050}|Shared.RabbitMQ\\Shared.RabbitMQ.csproj|solutionrelative:shared.rabbitmq\\shared.rabbitmq.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E08439A3-D274-4E31-A2CF-828B269E9241}|Shared.MinIO\\Shared.MinIO.csproj|d:\\fullstack\\neura\\back\\shared.minio\\shared.minio.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{E08439A3-D274-4E31-A2CF-828B269E9241}|Shared.MinIO\\Shared.MinIO.csproj|solutionrelative:shared.minio\\shared.minio.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63C9B2BE-6DB3-4F82-AA58-80A872B2D0FC}|Shared.Application\\Shared.Application.csproj|d:\\fullstack\\neura\\back\\shared.application\\shared.application.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{63C9B2BE-6DB3-4F82-AA58-80A872B2D0FC}|Shared.Application\\Shared.Application.csproj|solutionrelative:shared.application\\shared.application.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{845805CE-4E1E-42F5-92E2-C94463DC73EF}|RegService.Infrastructure\\RegService.Infrastructure.csproj|d:\\fullstack\\neura\\back\\regservice.infrastructure\\regservice.infrastructure.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{845805CE-4E1E-42F5-92E2-C94463DC73EF}|RegService.Infrastructure\\RegService.Infrastructure.csproj|solutionrelative:regservice.infrastructure\\regservice.infrastructure.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2D4144B8-7BC4-43E2-B4E4-3568361518D6}|RegService.Domain\\RegService.Domain.csproj|d:\\fullstack\\neura\\back\\regservice.domain\\regservice.domain.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{2D4144B8-7BC4-43E2-B4E4-3568361518D6}|RegService.Domain\\RegService.Domain.csproj|solutionrelative:regservice.domain\\regservice.domain.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3388B8A5-908C-426A-A6DE-93A283759A23}|RegService.Application\\RegService.Application.csproj|d:\\fullstack\\neura\\back\\regservice.application\\regservice.application.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{3388B8A5-908C-426A-A6DE-93A283759A23}|RegService.Application\\RegService.Application.csproj|solutionrelative:regservice.application\\regservice.application.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{284C48D9-6F78-47AB-ABCE-D9307FDAF798}|RegService.Api\\RegService.Api.csproj|d:\\fullstack\\neura\\back\\regservice.api\\regservice.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{284C48D9-6F78-47AB-ABCE-D9307FDAF798}|RegService.Api\\RegService.Api.csproj|solutionrelative:regservice.api\\regservice.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{979E3EBC-F725-81A8-7178-277E5088A385}|AuthService.Infrastructure\\AuthService.Infrastructure.csproj|d:\\fullstack\\neura\\back\\authservice.infrastructure\\authservice.infrastructure.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{979E3EBC-F725-81A8-7178-277E5088A385}|AuthService.Infrastructure\\AuthService.Infrastructure.csproj|solutionrelative:authservice.infrastructure\\authservice.infrastructure.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CB6AB413-C669-F5E0-BC03-1063FA1FB9D3}|AuthService.Domain\\AuthService.Domain.csproj|d:\\fullstack\\neura\\back\\authservice.domain\\authservice.domain.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{CB6AB413-C669-F5E0-BC03-1063FA1FB9D3}|AuthService.Domain\\AuthService.Domain.csproj|solutionrelative:authservice.domain\\authservice.domain.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B8E1D7C8-9F96-CA1B-EA55-406CEDDE6EA9}|AuthService.Application\\AuthService.Application.csproj|d:\\fullstack\\neura\\back\\authservice.application\\authservice.application.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{B8E1D7C8-9F96-CA1B-EA55-406CEDDE6EA9}|AuthService.Application\\AuthService.Application.csproj|solutionrelative:authservice.application\\authservice.application.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0D662E8A-431D-753E-CE2D-5CED3050ED5F}|AuthService.Api\\AuthService.Api.csproj|d:\\fullstack\\neura\\back\\authservice.api\\authservice.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{0D662E8A-431D-753E-CE2D-5CED3050ED5F}|AuthService.Api\\AuthService.Api.csproj|solutionrelative:authservice.api\\authservice.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0D662E8A-431D-753E-CE2D-5CED3050ED5F}|AuthService.Api\\AuthService.Api.csproj|d:\\fullstack\\neura\\back\\authservice.api\\dockerfile||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{0D662E8A-431D-753E-CE2D-5CED3050ED5F}|AuthService.Api\\AuthService.Api.csproj|solutionrelative:authservice.api\\dockerfile||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{284C48D9-6F78-47AB-ABCE-D9307FDAF798}|RegService.Api\\RegService.Api.csproj|d:\\fullstack\\neura\\back\\regservice.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{284C48D9-6F78-47AB-ABCE-D9307FDAF798}|RegService.Api\\RegService.Api.csproj|solutionrelative:regservice.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0D662E8A-431D-753E-CE2D-5CED3050ED5F}|AuthService.Api\\AuthService.Api.csproj|d:\\fullstack\\neura\\back\\authservice.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0D662E8A-431D-753E-CE2D-5CED3050ED5F}|AuthService.Api\\AuthService.Api.csproj|solutionrelative:authservice.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{979E3EBC-F725-81A8-7178-277E5088A385}|AuthService.Infrastructure\\AuthService.Infrastructure.csproj|d:\\fullstack\\neura\\back\\authservice.infrastructure\\configure\\userconfigure.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{979E3EBC-F725-81A8-7178-277E5088A385}|AuthService.Infrastructure\\AuthService.Infrastructure.csproj|solutionrelative:authservice.infrastructure\\configure\\userconfigure.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{979E3EBC-F725-81A8-7178-277E5088A385}|AuthService.Infrastructure\\AuthService.Infrastructure.csproj|d:\\fullstack\\neura\\back\\authservice.infrastructure\\configure\\verificationcodeconfigure.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{979E3EBC-F725-81A8-7178-277E5088A385}|AuthService.Infrastructure\\AuthService.Infrastructure.csproj|solutionrelative:authservice.infrastructure\\configure\\verificationcodeconfigure.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{979E3EBC-F725-81A8-7178-277E5088A385}|AuthService.Infrastructure\\AuthService.Infrastructure.csproj|d:\\fullstack\\neura\\back\\authservice.infrastructure\\data\\dbcontextauth.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{979E3EBC-F725-81A8-7178-277E5088A385}|AuthService.Infrastructure\\AuthService.Infrastructure.csproj|solutionrelative:authservice.infrastructure\\data\\dbcontextauth.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{979E3EBC-F725-81A8-7178-277E5088A385}|AuthService.Infrastructure\\AuthService.Infrastructure.csproj|d:\\fullstack\\neura\\back\\authservice.infrastructure\\data\\authdbcontextfactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{979E3EBC-F725-81A8-7178-277E5088A385}|AuthService.Infrastructure\\AuthService.Infrastructure.csproj|solutionrelative:authservice.infrastructure\\data\\authdbcontextfactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0D662E8A-431D-753E-CE2D-5CED3050ED5F}|AuthService.Api\\AuthService.Api.csproj|d:\\fullstack\\neura\\back\\authservice.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{0D662E8A-431D-753E-CE2D-5CED3050ED5F}|AuthService.Api\\AuthService.Api.csproj|solutionrelative:authservice.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CB6AB413-C669-F5E0-BC03-1063FA1FB9D3}|AuthService.Domain\\AuthService.Domain.csproj|d:\\fullstack\\neura\\back\\authservice.domain\\models\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CB6AB413-C669-F5E0-BC03-1063FA1FB9D3}|AuthService.Domain\\AuthService.Domain.csproj|solutionrelative:authservice.domain\\models\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CB6AB413-C669-F5E0-BC03-1063FA1FB9D3}|AuthService.Domain\\AuthService.Domain.csproj|d:\\fullstack\\neura\\back\\authservice.domain\\models\\verificationcode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CB6AB413-C669-F5E0-BC03-1063FA1FB9D3}|AuthService.Domain\\AuthService.Domain.csproj|solutionrelative:authservice.domain\\models\\verificationcode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0D662E8A-431D-753E-CE2D-5CED3050ED5F}|AuthService.Api\\AuthService.Api.csproj|d:\\fullstack\\neura\\back\\authservice.api\\controllers\\filename.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0D662E8A-431D-753E-CE2D-5CED3050ED5F}|AuthService.Api\\AuthService.Api.csproj|solutionrelative:authservice.api\\controllers\\filename.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{284C48D9-6F78-47AB-ABCE-D9307FDAF798}|RegService.Api\\RegService.Api.csproj|d:\\fullstack\\neura\\back\\regservice.api\\controllers\\weatherforecastcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{284C48D9-6F78-47AB-ABCE-D9307FDAF798}|RegService.Api\\RegService.Api.csproj|solutionrelative:regservice.api\\controllers\\weatherforecastcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0D662E8A-431D-753E-CE2D-5CED3050ED5F}|AuthService.Api\\AuthService.Api.csproj|d:\\fullstack\\neura\\back\\authservice.api\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{0D662E8A-431D-753E-CE2D-5CED3050ED5F}|AuthService.Api\\AuthService.Api.csproj|solutionrelative:authservice.api\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{284C48D9-6F78-47AB-ABCE-D9307FDAF798}|RegService.Api\\RegService.Api.csproj|d:\\fullstack\\neura\\back\\regservice.api\\dockerfile||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{284C48D9-6F78-47AB-ABCE-D9307FDAF798}|RegService.Api\\RegService.Api.csproj|solutionrelative:regservice.api\\dockerfile||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{845805CE-4E1E-42F5-92E2-C94463DC73EF}|RegService.Infrastructure\\RegService.Infrastructure.csproj|d:\\fullstack\\neura\\back\\regservice.infrastructure\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{845805CE-4E1E-42F5-92E2-C94463DC73EF}|RegService.Infrastructure\\RegService.Infrastructure.csproj|solutionrelative:regservice.infrastructure\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2D4144B8-7BC4-43E2-B4E4-3568361518D6}|RegService.Domain\\RegService.Domain.csproj|d:\\fullstack\\neura\\back\\regservice.domain\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2D4144B8-7BC4-43E2-B4E4-3568361518D6}|RegService.Domain\\RegService.Domain.csproj|solutionrelative:regservice.domain\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3388B8A5-908C-426A-A6DE-93A283759A23}|RegService.Application\\RegService.Application.csproj|d:\\fullstack\\neura\\back\\regservice.application\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3388B8A5-908C-426A-A6DE-93A283759A23}|RegService.Application\\RegService.Application.csproj|solutionrelative:regservice.application\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{63C9B2BE-6DB3-4F82-AA58-80A872B2D0FC}|Shared.Application\\Shared.Application.csproj|d:\\fullstack\\neura\\back\\shared.application\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{63C9B2BE-6DB3-4F82-AA58-80A872B2D0FC}|Shared.Application\\Shared.Application.csproj|solutionrelative:shared.application\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0D662E8A-431D-753E-CE2D-5CED3050ED5F}|AuthService.Api\\AuthService.Api.csproj|d:\\fullstack\\neura\\back\\authservice.api\\authservice.api.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}",
+      "RelativeMoniker": "D:0:0:{0D662E8A-431D-753E-CE2D-5CED3050ED5F}|AuthService.Api\\AuthService.Api.csproj|solutionrelative:authservice.api\\authservice.api.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E08439A3-D274-4E31-A2CF-828B269E9241}|Shared.MinIO\\Shared.MinIO.csproj|d:\\fullstack\\neura\\back\\shared.minio\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{E08439A3-D274-4E31-A2CF-828B269E9241}|Shared.MinIO\\Shared.MinIO.csproj|solutionrelative:shared.minio\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E2623DE8-4B70-40BB-96A9-EAE62E060814}|Shared.Redis\\Shared.Redis.csproj|d:\\fullstack\\neura\\back\\shared.redis\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{E2623DE8-4B70-40BB-96A9-EAE62E060814}|Shared.Redis\\Shared.Redis.csproj|solutionrelative:shared.redis\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D1F94490-E9DA-483A-9C6B-02252F28B050}|Shared.RabbitMQ\\Shared.RabbitMQ.csproj|d:\\fullstack\\neura\\back\\shared.rabbitmq\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{D1F94490-E9DA-483A-9C6B-02252F28B050}|Shared.RabbitMQ\\Shared.RabbitMQ.csproj|solutionrelative:shared.rabbitmq\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\FullStack\\Neura\\back\\Auth.Application\\Class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Auth.Application\\Class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\FullStack\\Neura\\back\\Auth.Application\\AuthService.Application.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Auth.Application\\AuthService.Application.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "global.json",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\global.json",
+              "RelativeDocumentMoniker": "global.json",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\global.json",
+              "RelativeToolTip": "global.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-01-27T03:59:45.187Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "RegService.Infrastructure.csproj",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\RegService.Infrastructure\\RegService.Infrastructure.csproj",
+              "RelativeDocumentMoniker": "RegService.Infrastructure\\RegService.Infrastructure.csproj",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\RegService.Infrastructure\\RegService.Infrastructure.csproj",
+              "RelativeToolTip": "RegService.Infrastructure\\RegService.Infrastructure.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-27T03:20:27.359Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Shared.Application.csproj",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\Shared.Application\\Shared.Application.csproj",
+              "RelativeDocumentMoniker": "Shared.Application\\Shared.Application.csproj",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\Shared.Application\\Shared.Application.csproj",
+              "RelativeToolTip": "Shared.Application\\Shared.Application.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-25T10:47:01.433Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Shared.MinIO.csproj",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\Shared.MinIO\\Shared.MinIO.csproj",
+              "RelativeDocumentMoniker": "Shared.MinIO\\Shared.MinIO.csproj",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\Shared.MinIO\\Shared.MinIO.csproj",
+              "RelativeToolTip": "Shared.MinIO\\Shared.MinIO.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-27T03:20:39.484Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Shared.RabbitMQ.csproj",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\Shared.RabbitMQ\\Shared.RabbitMQ.csproj",
+              "RelativeDocumentMoniker": "Shared.RabbitMQ\\Shared.RabbitMQ.csproj",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\Shared.RabbitMQ\\Shared.RabbitMQ.csproj",
+              "RelativeToolTip": "Shared.RabbitMQ\\Shared.RabbitMQ.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-27T03:20:44.378Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Shared.Redis.csproj",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\Shared.Redis\\Shared.Redis.csproj",
+              "RelativeDocumentMoniker": "Shared.Redis\\Shared.Redis.csproj",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\Shared.Redis\\Shared.Redis.csproj",
+              "RelativeToolTip": "Shared.Redis\\Shared.Redis.csproj",
+              "ViewState": "AgIAAAQAAAAAAAAAAAAuwAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-27T03:20:48.671Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "RegService.Domain.csproj",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\RegService.Domain\\RegService.Domain.csproj",
+              "RelativeDocumentMoniker": "RegService.Domain\\RegService.Domain.csproj",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\RegService.Domain\\RegService.Domain.csproj",
+              "RelativeToolTip": "RegService.Domain\\RegService.Domain.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-27T03:20:22.671Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "RegService.Application.csproj",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\RegService.Application\\RegService.Application.csproj",
+              "RelativeDocumentMoniker": "RegService.Application\\RegService.Application.csproj",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\RegService.Application\\RegService.Application.csproj",
+              "RelativeToolTip": "RegService.Application\\RegService.Application.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-27T03:20:17.265Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "RegService.Api.csproj",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\RegService.Api\\RegService.Api.csproj",
+              "RelativeDocumentMoniker": "RegService.Api\\RegService.Api.csproj",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\RegService.Api\\RegService.Api.csproj",
+              "RelativeToolTip": "RegService.Api\\RegService.Api.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-25T10:56:59.318Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "AuthService.Infrastructure.csproj",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Infrastructure\\AuthService.Infrastructure.csproj",
+              "RelativeDocumentMoniker": "AuthService.Infrastructure\\AuthService.Infrastructure.csproj",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Infrastructure\\AuthService.Infrastructure.csproj",
+              "RelativeToolTip": "AuthService.Infrastructure\\AuthService.Infrastructure.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-27T01:14:58.612Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "AuthService.Domain.csproj",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Domain\\AuthService.Domain.csproj",
+              "RelativeDocumentMoniker": "AuthService.Domain\\AuthService.Domain.csproj",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Domain\\AuthService.Domain.csproj",
+              "RelativeToolTip": "AuthService.Domain\\AuthService.Domain.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-27T03:00:27.868Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "AuthService.Application.csproj",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Application\\AuthService.Application.csproj",
+              "RelativeDocumentMoniker": "AuthService.Application\\AuthService.Application.csproj",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Application\\AuthService.Application.csproj",
+              "RelativeToolTip": "AuthService.Application\\AuthService.Application.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-27T03:19:53.062Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "AuthService.Api.csproj",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Api\\AuthService.Api.csproj",
+              "RelativeDocumentMoniker": "AuthService.Api\\AuthService.Api.csproj",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Api\\AuthService.Api.csproj",
+              "RelativeToolTip": "AuthService.Api\\AuthService.Api.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAAMAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-22T03:36:48.229Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "Dockerfile",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Api\\Dockerfile",
+              "RelativeDocumentMoniker": "AuthService.Api\\Dockerfile",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Api\\Dockerfile",
+              "RelativeToolTip": "AuthService.Api\\Dockerfile",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-01-25T10:27:40.569Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\RegService.Api\\Program.cs",
+              "RelativeDocumentMoniker": "RegService.Api\\Program.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\RegService.Api\\Program.cs",
+              "RelativeToolTip": "RegService.Api\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-27T03:25:10.984Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Api\\Program.cs",
+              "RelativeDocumentMoniker": "AuthService.Api\\Program.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Api\\Program.cs",
+              "RelativeToolTip": "AuthService.Api\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-22T03:36:07.302Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "VerificationCodeConfigure.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Infrastructure\\Configure\\VerificationCodeConfigure.cs",
+              "RelativeDocumentMoniker": "AuthService.Infrastructure\\Configure\\VerificationCodeConfigure.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Infrastructure\\Configure\\VerificationCodeConfigure.cs",
+              "RelativeToolTip": "AuthService.Infrastructure\\Configure\\VerificationCodeConfigure.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-27T01:27:36.495Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 36,
+              "Title": "AuthService.Application.csproj",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\Auth.Application\\AuthService.Application.csproj",
+              "RelativeDocumentMoniker": "Auth.Application\\AuthService.Application.csproj",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\Auth.Application\\AuthService.Application.csproj",
+              "RelativeToolTip": "Auth.Application\\AuthService.Application.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-27T03:00:22.706Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "DbContextAuth.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Infrastructure\\Data\\DbContextAuth.cs",
+              "RelativeDocumentMoniker": "AuthService.Infrastructure\\Data\\DbContextAuth.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Infrastructure\\Data\\DbContextAuth.cs",
+              "RelativeToolTip": "AuthService.Infrastructure\\Data\\DbContextAuth.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAABBAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-27T01:16:52.433Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "AuthDbContextFactory.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Infrastructure\\Data\\AuthDbContextFactory.cs",
+              "RelativeDocumentMoniker": "AuthService.Infrastructure\\Data\\AuthDbContextFactory.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Infrastructure\\Data\\AuthDbContextFactory.cs",
+              "RelativeToolTip": "AuthService.Infrastructure\\Data\\AuthDbContextFactory.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-27T02:22:04.951Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "UserConfigure.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Infrastructure\\Configure\\UserConfigure.cs",
+              "RelativeDocumentMoniker": "AuthService.Infrastructure\\Configure\\UserConfigure.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Infrastructure\\Configure\\UserConfigure.cs",
+              "RelativeToolTip": "AuthService.Infrastructure\\Configure\\UserConfigure.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-27T01:26:18.784Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "User.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Domain\\Models\\User.cs",
+              "RelativeDocumentMoniker": "AuthService.Domain\\Models\\User.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Domain\\Models\\User.cs",
+              "RelativeToolTip": "AuthService.Domain\\Models\\User.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-27T00:58:16.432Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Api\\appsettings.json",
+              "RelativeDocumentMoniker": "AuthService.Api\\appsettings.json",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Api\\appsettings.json",
+              "RelativeToolTip": "AuthService.Api\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-01-21T23:14:11.233Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "VerificationCode.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Domain\\Models\\VerificationCode.cs",
+              "RelativeDocumentMoniker": "AuthService.Domain\\Models\\VerificationCode.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Domain\\Models\\VerificationCode.cs",
+              "RelativeToolTip": "AuthService.Domain\\Models\\VerificationCode.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-27T00:59:42.801Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "FileName.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Api\\Controllers\\FileName.cs",
+              "RelativeDocumentMoniker": "AuthService.Api\\Controllers\\FileName.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Api\\Controllers\\FileName.cs",
+              "RelativeToolTip": "AuthService.Api\\Controllers\\FileName.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-27T00:33:53.375Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
+              "Title": "WeatherForecastController.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\RegService.Api\\Controllers\\WeatherForecastController.cs",
+              "RelativeDocumentMoniker": "RegService.Api\\Controllers\\WeatherForecastController.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\RegService.Api\\Controllers\\WeatherForecastController.cs",
+              "RelativeToolTip": "RegService.Api\\Controllers\\WeatherForecastController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABoAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-27T00:33:23.005Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 26,
+              "Title": "Dockerfile",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\RegService.Api\\Dockerfile",
+              "RelativeDocumentMoniker": "RegService.Api\\Dockerfile",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\RegService.Api\\Dockerfile",
+              "RelativeToolTip": "RegService.Api\\Dockerfile",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-01-25T10:57:11.583Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 27,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\RegService.Infrastructure\\Class1.cs",
+              "RelativeDocumentMoniker": "RegService.Infrastructure\\Class1.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\RegService.Infrastructure\\Class1.cs",
+              "RelativeToolTip": "RegService.Infrastructure\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-25T10:56:29.294Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 28,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\RegService.Domain\\Class1.cs",
+              "RelativeDocumentMoniker": "RegService.Domain\\Class1.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\RegService.Domain\\Class1.cs",
+              "RelativeToolTip": "RegService.Domain\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-25T10:56:14.664Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 29,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\RegService.Application\\Class1.cs",
+              "RelativeDocumentMoniker": "RegService.Application\\Class1.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\RegService.Application\\Class1.cs",
+              "RelativeToolTip": "RegService.Application\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-25T10:55:52.579Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 25,
+              "Title": "launchSettings.json",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Api\\Properties\\launchSettings.json",
+              "RelativeDocumentMoniker": "AuthService.Api\\Properties\\launchSettings.json",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Api\\Properties\\launchSettings.json",
+              "RelativeToolTip": "AuthService.Api\\Properties\\launchSettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-01-21T23:14:21.461Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 31,
+              "Title": "AuthService.Api.http",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\AuthService.Api\\AuthService.Api.http",
+              "RelativeDocumentMoniker": "AuthService.Api\\AuthService.Api.http",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\AuthService.Api\\AuthService.Api.http",
+              "RelativeToolTip": "AuthService.Api\\AuthService.Api.http",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003502|",
+              "WhenOpened": "2026-01-21T23:14:09.956Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 30,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\Shared.Application\\Class1.cs",
+              "RelativeDocumentMoniker": "Shared.Application\\Class1.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\Shared.Application\\Class1.cs",
+              "RelativeToolTip": "Shared.Application\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-21T22:09:56.59Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 32,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\Shared.MinIO\\Class1.cs",
+              "RelativeDocumentMoniker": "Shared.MinIO\\Class1.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\Shared.MinIO\\Class1.cs",
+              "RelativeToolTip": "Shared.MinIO\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-21T22:50:18.727Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 33,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\Shared.Redis\\Class1.cs",
+              "RelativeDocumentMoniker": "Shared.Redis\\Class1.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\Shared.Redis\\Class1.cs",
+              "RelativeToolTip": "Shared.Redis\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-21T22:50:06.861Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 34,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\Shared.RabbitMQ\\Class1.cs",
+              "RelativeDocumentMoniker": "Shared.RabbitMQ\\Class1.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\Shared.RabbitMQ\\Class1.cs",
+              "RelativeToolTip": "Shared.RabbitMQ\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-21T22:49:54.379Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 35,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "D:\\FullStack\\Neura\\back\\Auth.Application\\Class1.cs",
+              "RelativeDocumentMoniker": "Auth.Application\\Class1.cs",
+              "ToolTip": "D:\\FullStack\\Neura\\back\\Auth.Application\\Class1.cs",
+              "RelativeToolTip": "Auth.Application\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-21T20:24:15.955Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

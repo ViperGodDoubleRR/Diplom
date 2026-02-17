@@ -1,0 +1,12 @@
+# back
+bin/
+obj/
+*.user
+*.suo
+
+# front
+node_modules/
+dist/
+
+# System
+*.log
