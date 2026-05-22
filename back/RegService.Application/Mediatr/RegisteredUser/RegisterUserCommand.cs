@@ -6,9 +6,11 @@ using System.Threading.Tasks;
 
 using MediatR;
 
+using Shared.Application.Contracts;
+
 namespace RegService.Application.Mediatr.RegisteredUser
 {
-    public class RegisterUserCommand:IRequest<string>
+    public class RegisterUserCommand:IRequest<ApiResponse<string>>
     {
         public string Email;
         public string Login;

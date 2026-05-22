@@ -22,7 +22,7 @@ namespace AuthService.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("AuthService.Domain.Models.TableToken", b =>
+            modelBuilder.Entity("AuthService.Domain.Models.ResetCode", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -30,23 +30,27 @@ namespace AuthService.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AccessToken")
+                    b.Property<string>("Code")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("RefreshToken")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
-                    b.Property<Guid>("TokenUserId")
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("ResCodeUserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TokenUserId")
-                        .IsUnique();
+                    b.HasIndex("ResCodeUserId");
 
-                    b.ToTable("TableTokens");
+                    b.ToTable("ResetCodes");
                 });
 
             modelBuilder.Entity("AuthService.Domain.Models.User", b =>
@@ -73,6 +77,48 @@ namespace AuthService.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("AuthService.Domain.Models.UserSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeviceInfo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("RefreshToken")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserSessions");
                 });
 
             modelBuilder.Entity("AuthService.Domain.Models.VerificationCode", b =>
@@ -106,32 +152,44 @@ namespace AuthService.Infrastructure.Migrations
                     b.ToTable("VerificationCodes");
                 });
 
-            modelBuilder.Entity("AuthService.Domain.Models.TableToken", b =>
+            modelBuilder.Entity("AuthService.Domain.Models.ResetCode", b =>
                 {
-                    b.HasOne("AuthService.Domain.Models.User", "UserToken")
-                        .WithOne("TableToken")
-                        .HasForeignKey("AuthService.Domain.Models.TableToken", "TokenUserId")
+                    b.HasOne("AuthService.Domain.Models.User", "UserID")
+                        .WithMany("ResetCodes")
+                        .HasForeignKey("ResCodeUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("UserToken");
+                    b.Navigation("UserID");
+                });
+
+            modelBuilder.Entity("AuthService.Domain.Models.UserSession", b =>
+                {
+                    b.HasOne("AuthService.Domain.Models.User", "User")
+                        .WithMany("Sessions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("AuthService.Domain.Models.VerificationCode", b =>
                 {
-                    b.HasOne("AuthService.Domain.Models.User", "UserCode")
+                    b.HasOne("AuthService.Domain.Models.User", "UserID")
                         .WithMany("VerificationCodes")
                         .HasForeignKey("CodeUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("UserCode");
+                    b.Navigation("UserID");
                 });
 
             modelBuilder.Entity("AuthService.Domain.Models.User", b =>
                 {
-                    b.Navigation("TableToken")
-                        .IsRequired();
+                    b.Navigation("ResetCodes");
+
+                    b.Navigation("Sessions");
 
                     b.Navigation("VerificationCodes");
                 });

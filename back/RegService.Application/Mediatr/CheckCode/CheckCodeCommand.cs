@@ -6,9 +6,11 @@ using System.Threading.Tasks;
 
 using MediatR;
 
+using Shared.Application.Contracts;
+
 namespace RegService.Application.Mediatr.CheckCode
 {
-    public class CheckCodeCommand:IRequest<bool>
+    public class CheckCodeCommand:IRequest<ApiResponse<string>>
     {
         public string Email;
         public string Code;

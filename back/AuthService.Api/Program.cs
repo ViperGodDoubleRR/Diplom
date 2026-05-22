@@ -1,23 +1,25 @@
-﻿using AuthService.Infrastructure.Data;
+﻿using AuthService.Application.MediatR.ResCheckCode;
+using AuthService.Domain.Interface;
+using AuthService.Infrastructure.Data;
+using AuthService.Infrastructure.EfRepository;
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 using Shared.Application.Interfaces;
-using Shared.Infrastructure.Email;
+using Shared.Infrastructure.JWT;
 using Shared.Infrastructure.Security;
 using Shared.RabbitMQ;
 using Shared.RabbitMQ.rpc.Abstraction;
 
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRabbitMq();
-//shared
-builder.Services.AddEmailSender(builder.Configuration);
-builder.Services.AddScoped<IHasher, Hasher>();
-builder.Services.AddScoped<ICodeGenerate, CodeGenerator>();
-builder.Services.AddDbContext<DbContextAuth>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddControllers();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -28,11 +30,58 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddDbContext<DbContextAuth>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!))
+    };
+});
+
+builder.Services.AddAuthorization();
+
+builder.Services.AddScoped<IHasher, Hasher>();
+builder.Services.AddScoped<ICodeGenerate, CodeGenerator>();
+builder.Services.AddScoped<IJwtProvider, JwtProvider>();
+builder.Services.AddScoped<IAuthRepository, EfAuthRepository>();
+builder.Services.AddScoped<IResRepository, EfResRepository>();
+
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(ResCheckCodeCommand).Assembly));
+
+
+builder.Services.AddRabbitMq();
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto;
+});
 
 var app = builder.Build();
-var server = app.Services.GetRequiredService<IRpcServer>();
-server.Start("auth.rpc");
+var rpcServer = app.Services.GetRequiredService<IRpcServer>();
+rpcServer.Start("auth.rpc");
+app.UseForwardedHeaders();
+
+app.UseCors("AllowAll");
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
+
 app.Run();

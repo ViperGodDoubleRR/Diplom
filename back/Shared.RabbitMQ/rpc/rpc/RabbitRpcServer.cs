@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
+using Microsoft.Extensions.DependencyInjection;
+
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -35,62 +37,73 @@ public class RabbitRpcServer : IRpcServer
 
         consumer.ReceivedAsync += async (model, ea) =>
         {
-            var json = Encoding.UTF8.GetString(ea.Body.ToArray());
+            try
+            {
+                var json = Encoding.UTF8.GetString(ea.Body.ToArray());
 
-            var typeName = ea.BasicProperties.Type
-                           ?? throw new InvalidOperationException("RPC request missing Type header");
+                var typeName = ea.BasicProperties.Type
+                               ?? throw new InvalidOperationException("RPC request missing Type header");
 
-            var requestType = Type.GetType(typeName)
-                              ?? throw new InvalidOperationException($"Cannot resolve request type: {typeName}");
+                var requestType = Type.GetType(typeName)
+                                  ?? throw new InvalidOperationException($"Cannot resolve request type: {typeName}");
 
-            var request = JsonSerializer.Deserialize(json, requestType)
-                          ?? throw new InvalidOperationException("Failed to deserialize RPC request");
+                var request = JsonSerializer.Deserialize(json, requestType)
+                              ?? throw new InvalidOperationException("Failed to deserialize RPC request");
 
-            var rpcEvent = request as IRPCEvent
-                           ?? throw new InvalidOperationException("Request does not implement IRPCEvent");
+                var rpcEvent = request as IRPCEvent
+                               ?? throw new InvalidOperationException("Request does not implement IRPCEvent");
 
-            var responseTypeName = rpcEvent.ResponseType
-                                   ?? throw new InvalidOperationException("ResponseType is null");
+                var responseTypeName = rpcEvent.ResponseType
+                                       ?? throw new InvalidOperationException("ResponseType is null");
 
-            var responseType = Type.GetType(responseTypeName)
-                               ?? throw new InvalidOperationException($"Cannot resolve response type: {responseTypeName}");
+                var responseType = Type.GetType(responseTypeName)
+                                   ?? throw new InvalidOperationException($"Cannot resolve response type: {responseTypeName}");
 
-            var handlerType = typeof(IRPCHandle<,>).MakeGenericType(requestType, responseType);
+                var handlerType = typeof(IRPCHandle<,>).MakeGenericType(requestType, responseType);
 
-            var handler = _provider.GetService(handlerType)
-                          ?? throw new InvalidOperationException($"Handler not registered: {handlerType}");
+                using var scope = _provider.CreateScope();
+                var scopedProvider = scope.ServiceProvider;
 
-            var handleMethod = handlerType.GetMethod("Handle")
-                               ?? throw new InvalidOperationException("Handler has no Handle() method");
+                var handler = scopedProvider.GetService(handlerType)
+                    ?? throw new InvalidOperationException($"Handler not registered: {handlerType}");
 
-            var taskObj = handleMethod.Invoke(handler, new[] { request })
-                          ?? throw new InvalidOperationException("Handler returned null Task");
+                var handleMethod = handlerType.GetMethod("Handle")
+                    ?? throw new InvalidOperationException("Handler has no Handle() method");
 
-            var responseObj = await (Task<object>)taskObj;
+                var task = (Task)handleMethod.Invoke(handler, new[] { request });
+                await task;
 
-            var responseJson = JsonSerializer.Serialize(responseObj);
-            var responseBytes = Encoding.UTF8.GetBytes(responseJson);
+                var resultProperty = task.GetType().GetProperty("Result");
+                var responseObj = resultProperty.GetValue(task);
 
-            var correlationId = ea.BasicProperties.CorrelationId
-                                ?? throw new InvalidOperationException("CorrelationId is missing");
 
-            var replyTo = ea.BasicProperties.ReplyTo
-                          ?? throw new InvalidOperationException("ReplyTo is missing");
+                var responseJson = JsonSerializer.Serialize(responseObj);
+                var responseBytes = Encoding.UTF8.GetBytes(responseJson);
 
-            var props = new BasicProperties();
-            props.CorrelationId = correlationId;
+                var correlationId = ea.BasicProperties.CorrelationId
+                                    ?? throw new InvalidOperationException("CorrelationId is missing");
 
-            await channel.BasicPublishAsync(
-                exchange: "",
-                routingKey: replyTo,
-                mandatory: false,
-                basicProperties: props,
-                body: responseBytes
-            );
+                var replyTo = ea.BasicProperties.ReplyTo
+                              ?? throw new InvalidOperationException("ReplyTo is missing");
 
-            await channel.BasicAckAsync(ea.DeliveryTag, false);
+                var props = new BasicProperties();
+                props.CorrelationId = correlationId;
+
+                await channel.BasicPublishAsync(
+                    exchange: "",
+                    routingKey: replyTo,
+                    mandatory: false,
+                    basicProperties: props,
+                    body: responseBytes
+                );
+
+                await channel.BasicAckAsync(ea.DeliveryTag, false);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("RPC SERVER ERROR: " + ex);
+            }
         };
-
 
         await channel.BasicConsumeAsync(
             queue: rpcQueue,
@@ -103,3 +116,4 @@ public class RabbitRpcServer : IRpcServer
         );
     }
 }
+

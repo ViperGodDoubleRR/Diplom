@@ -6,7 +6,7 @@
 
 <style>
 #app {
-  background: linear-gradient(135deg, #6C00FF, #00C2FF, #FF00C7);
+  background:#000000;
   min-height: 100vh;
   font-family: 'Inter', sans-serif;
   display: flex;
@@ -17,5 +17,8 @@
 body{
   margin: 0px;
   padding: 0px;
+}
+#h1{
+
 }
 </style>

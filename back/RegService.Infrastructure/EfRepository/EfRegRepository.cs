@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using RegService.Domain.IRepository;
 using RegService.Domain.Models;
 using RegService.Infrastructure.Data;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 namespace RegService.Infrastructure.IEfRepository
 {

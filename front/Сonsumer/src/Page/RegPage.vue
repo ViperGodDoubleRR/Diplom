@@ -1,216 +1,291 @@
 <template>
   <div class="content">
-    <h1> SIGN UP</h1>
-    <h2>Create your account</h2>
-    <div :hidden="isStep">
-      <img :src="photo">
-      <section>
-        <p class='text'>Email</p>
-        <div class="input-wrapper">
-          <input type="text" placeholder="zabiyaka" v-model.trim="emailfirst">
-          <select v-model.trim="emailtwo">
-            <option>@gmail.com</option>
-            <option>@yahoo.com</option>
-            <option>@mail.ru</option>
-          </select>
-        </div>
-      </section>
-      <section>
-        <p class="text">Verification code</p>
-        <div class="input-wrapper">
-          <input type="text" placeholder="asd312sajk13" v-model.trim="code">
-          <button class="request" @click="sendEmail">Request Code</button>
-        </div>
-      </section>
-    </div>
+    <figure>
+      <img src="@/assets/image/logo.png" alt="Арт соц сети" class="logo" />
+      <figcaption>Достойный арт Социальной сети "GoatBridge"</figcaption>
+    </figure>
 
-    <div :hidden="!isStep">
-      <section>
-        <p class="text">Login</p>
-        <div class="input-wrapper">
-          <input type="text" placeholder="Arseniy" v-model="login">
-          <button class="request">Request Code</button>
-        </div>
-      </section>
-      <section>
-        <p class='text'>Password</p>
-        <div class="input-wrapper">
-          <input type="password" placeholder="****" v-model="passwordfirst">
-          <button class="password">asd</button>
-        </div>
-      </section>
-      <section>
-        <p class='text'>Repeat Password</p>
-        <div class="input-wrapper">
-          <input type="password" placeholder="***" v-model="passwordtwo">
-          <button class="password">asd</button>
-        </div>
-      </section>
+    <div class="form">
+      <h1>Registration</h1>
 
-    </div>
+      <div v-if="step === 1" class="step-container">
+        <h2>Email</h2>
+        <input v-model.trim="email" placeholder="arsenyads" class="main-input" />
 
-    <div>
-      <button class="back">Cancel</button>
-      <button class="go" @click="nextStep">Continue</button>
+        <h2>Verification Code</h2>
+        <div class="input-wrapper">
+          <input v-model.trim="code" placeholder="H89AKSDS" class="verification-input" />
+          <button @click="sendEmail" class="request-btn">request</button>
+        </div>
+      </div>
+
+      <div v-else class="step-container">
+        <h2>Login</h2>
+        <input v-model="login" type="text" placeholder="Your_Nickname" class="main-input" />
+
+        <h2>Password</h2>
+        <div class="input-wrapper">
+          <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="********"
+            class="verification-input" />
+          <button class="eye-btn" @click="showPassword = !showPassword">
+            <img src="@/assets/image/password.png" alt="view" class="eye-icon" />
+          </button>
+        </div>
+      </div>
+
+      <div class="buttonmenu">
+        <button class="action-btn cancel" @click="step = 1">
+          {{ step === 1 ? 'Cancel' : 'Back' }}
+        </button>
+
+        <button class="action-btn next" @click="NextButton">
+          {{ step === 1 ? 'Next' : 'Finish' }} </button>
+      </div>
+
+      <h4>Have account?</h4>
+      <h3>Click Authentification</h3>
     </div>
   </div>
 </template>
 
-
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref } from 'vue';
 import { RegService } from '@/service/regService';
-const service = new RegService();
-const photo = ref('/Photo.png');
-const isStep = ref(false);
+import { useRouter } from 'vue-router';
 
-const emailfirst = ref('');
-const emailtwo = ref('');
+const router = useRouter();
+const regService = new RegService();
+const step = ref(1);
+const showPassword = ref(false);
+const email = ref('')
 const code = ref('');
 const login = ref('');
-const passwordfirst = ref('');
-const passwordtwo = ref('');
-
-
+const password = ref('');
 const sendEmail = async () => {
-  const email = emailfirst.value + emailtwo.value;
-  const response = await service.sendEmail(email);
-  alert(response);
-}
-const checkCode = async () => {
-  const email = emailfirst.value + emailtwo.value;
-  const response = await service.checkCode(email, code.value);
-  return response
-}
-const nextStep = async () => {
-  if (!isStep.value) {
-    const response = await checkCode()
-    isStep.value = response;
-    alert(response);
+  const response = await regService.sendEmail(email.value);
+  console.log(response);
+  if (response.success) {
+    alert("Код успешно отправле на :" + response.data)
   }
   else {
-    const email = emailfirst.value + emailtwo.value;
-    if (login.value.length > 3 && passwordfirst.value == passwordtwo.value) {
-      service.registerUser(email, login.value, passwordfirst.value);
+    alert(response.error?.code);
+    alert(response.error?.message);
+  }
+}
+
+const NextButton = async () => {
+  if (step.value == 1) {
+    const response = await stepOne();
+    console.log(response);
+    if (response?.success) {
+      step.value++;
+      alert(response.data);
     }
+    else {
+      alert(response?.error?.code);
+      alert(response?.error?.message);
+    }
+  }
+  else if (step.value == 2) {
+    const response = await stepTwo();
+    if (response?.success) {
+      alert(response.data)
+      router.push('/auth');
+    }
+    else {
+      alert(response?.error?.code)
+      alert(response?.error?.message);
+    }
+  }
+}
+const stepOne = async () => {
+  try {
+    return await regService.checkCode(email.value, code.value);
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+const stepTwo = async () => {
+  try {
+    return await regService.registerUser(email.value, login.value, password.value);
+  }
+  catch (e) {
+    console.log(e);
   }
 }
 </script>
 
 <style scoped>
-.content {
+.step-container {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  text-align: center;
-  border-radius: 20px;
-  backdrop-filter: blur(20px);
-  background: linear-gradient(135deg, #6C00FF, #00C2FF, #FF00C7);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  padding: 50px;
-  font-family: Georgia, 'Times New Roman', Times, serif;
-}
-
-img {
-  width: 120px;
-  height: 120px;
-  margin: 0px;
-  background: transparent;
-}
-
-h1 {
-  color: #FFFFFF;
-  font-size: 50px;
-  margin: 0px;
-}
-
-h2 {
-  color: #E0E0E0;
-}
-
-section {
-  width: 364px;
-  margin: 0px;
-}
-
-.text {
-  color: #D0BFFF;
-  font-size: 30px;
-  margin-bottom: 5px;
-  margin-left: 10px;
-}
-
-.input-wrapper {
-  background-color: white;
-  border-radius: 20px 20px 20px 20px;
-  display: flex;
-  opacity: 70%;
-}
-
-input {
-  border-radius: 20px 0px 0px 20px;
-  font-size: 20px;
-  height: 40px;
-  border: none;
-  opacity: 50%;
-  background-color: transparent;
-  color: #7a0eed;
-  font-weight: bold;
-  flex: 1;
-  padding-left: 10px;
-}
-
-select {
-  border: none;
-  border-radius: 0px 20px 20px 0px;
-  font-size: 15px;
-  flex: 0.7;
-  min-width: 0;
+  gap: 15px;
   width: 100%;
 }
 
-.request {
+
+.eye-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 60px;
+  height: 45px;
+  background-color: white;
+  border-radius: 30px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.eye-icon {
+  width: 35px;
+  height: auto;
+}
+
+
+.content {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  align-items: center;
+  justify-content: center;
+  background-color: #0F0F0F;
+}
+
+.logo {
+  width: 720px;
+  height: auto;
+  max-height: 900px;
+  margin-right: 100px;
+}
+
+figcaption {
+  color: #F8F9FA;
+  font-family: 'Ouroboros', sans-serif;
+  text-align: center;
+  margin-top: 10px;
+  opacity: 0.7;
+}
+
+.form {
+  width: 704px;
+  min-height: 780px;
+  padding: 40px;
+  box-sizing: border-box;
+  background: linear-gradient(to bottom right,
+      rgba(169, 68, 189, 0.83) 8%,
+      rgba(65, 99, 252, 0.61) 100%);
+  box-shadow:
+    6px 6px 4px 6px rgba(65, 99, 252, 0.59),
+    inset 6px 6px 4px 6px rgba(169, 68, 189, 0.59);
+  border-radius: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 15px;
+}
+
+h1,
+h2,
+h3,
+h4,
+button,
+input {
+  font-family: 'Ouroboros', sans-serif;
+  color: #F8F9FA;
+  margin: 0;
+}
+
+h1 {
+  font-size: 64px;
+  margin-bottom: 10px;
+}
+
+h2 {
+  font-size: 36px;
+  align-self: center;
+}
+
+h3 {
+  font-size: 32px;
+  opacity: 0.85;
+  cursor: pointer;
+}
+
+h4 {
+  font-size: 24px;
+  opacity: 0.75;
+  margin-top: 10px;
+}
+
+input {
+  width: 589px;
+  height: 67px;
+  border-radius: 50px;
+  border: none;
+  font-size: 28px;
+  padding: 0 30px;
+  box-sizing: border-box;
+  outline: none;
+  background: linear-gradient(to right, rgba(108, 40, 197, 0.9), rgba(52, 19, 95, 0.9));
+}
+
+.input-wrapper {
+  position: relative;
+  width: 589px;
+  height: 67px;
+}
+
+.verification-input {
+  width: 100%;
+  height: 100%;
+  padding-right: 180px;
+}
+
+.request-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 170px;
+  height: 100%;
+  background-color: #4163FC;
+  border-radius: 50px;
+  border: none;
+  font-size: 24px;
+  opacity: 0.85;
+  cursor: pointer;
+}
+
+.buttonmenu {
+  display: flex;
+  gap: 30px;
+  margin-top: 30px;
+}
+
+.action-btn {
+  width: 252px;
+  height: 82px;
+  border-radius: 50px;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+}
+
+.cancel {
+  background-color: rgba(255, 255, 255, 0.2);
+  opacity: 0.6;
+}
+
+.next {
+  background-color: #4163FC;
   opacity: 0.8;
-  border: none;
-  flex: 1.5;
-  border-radius: 0px 20px 20px 0px;
-}
-
-.request:hover {
-  opacity: 1;
-}
-
-.password {
-  opacity: 20%;
-  border: none;
-  border-radius: 0px 20px 20px 0px;
-
-  flex: 0.3;
-}
-
-.go {
-  background: linear-gradient(90deg, #00F5FF, #00C2FF);
-  color: #FFFFFF;
-  box-shadow: 0 0 12px rgba(0, 245, 255, 0.4);
-  font-size: 40px;
-  margin-top: 20px;
-  border: none;
-  border-radius: 20px;
-  box-shadow: 0 0 1 0.3;
-  margin-left: 25px;
-
-}
-
-.back {
-  background: linear-gradient(90deg, #b02ff0, #00C2FF);
-  color: #FFFFFF;
-  box-shadow: 0 0 12px rgba(0, 245, 255, 0.4);
-  font-size: 40px;
-  margin-top: 20px;
-  border: none;
-  border-radius: 20px;
-  box-shadow: 0 0 1 0.3;
-  margin-right: 25px;
 }
 </style>

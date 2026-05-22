@@ -8,11 +8,16 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\AuthService.Domain\AuthService.Domain.csproj" />
+		<ProjectReference Include="..\Shared.Application\Shared.Application.csproj" />
 		<ProjectReference Include="..\Shared.RabbitMQ\Shared.RabbitMQ.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Events\" />
+	  <Folder Include="Event\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="MediatR" Version="12.2.0" />
 	</ItemGroup>
 
 </Project>

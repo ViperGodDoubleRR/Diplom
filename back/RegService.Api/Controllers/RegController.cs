@@ -8,12 +8,13 @@ using RegService.Application.Mediatr.CheckCode;
 using RegService.Application.Mediatr.RegisteredUser;
 using RegService.Application.Mediatr.SendEmail;
 
+using Shared.Application.Contracts;
 using Shared.RabbitMQ.rpc.Abstraction;
 
 namespace RegService.Api.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("")]
     public class RegController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -27,8 +28,8 @@ namespace RegService.Api.Controllers
         public async Task<IActionResult> SendEmailCode(string email)
         {
             var command = new SendEmailCommandCode(email);
-            var response = await _mediator.Send(command);
-            _logger.LogInformation(response);
+            ApiResponse<string> response = await _mediator.Send(command);
+            _logger.LogInformation("Ответ клиенту: " ,response);
             return Ok(response);
         }
         [HttpGet("check-code")] 
@@ -36,18 +37,17 @@ namespace RegService.Api.Controllers
         {
             _logger.LogInformation($"Email:{email} /n Code: {code}");
             var command = new CheckCodeCommand(email, code);
-            var response = await _mediator.Send(command);
+            ApiResponse<string> response = await _mediator.Send(command);
+            _logger.LogInformation("Проверка кода: ", response);
             return Ok(response);    
         }
         [HttpPost("register-user")]
         public async Task<IActionResult> RegisterUser([FromBody] RegisterUserDTO user)
         {
-
-                
-                
+                _logger.LogInformation(user.ToString());
                 var command = new RegisterUserCommand(user.email, user.login, user.password);
                 var response = await _mediator.Send(command);
-                 _logger.LogInformation(response);
+                 _logger.LogInformation("CallBack: ",response);
                 return Ok(response);
         }
     }

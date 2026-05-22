@@ -12,5 +12,4 @@ namespace RegService.Domain.Models
         public string Email { get; set; } = string.Empty;  
         public DateTime ConfirmedAt { get; set; }
     }
-
 }

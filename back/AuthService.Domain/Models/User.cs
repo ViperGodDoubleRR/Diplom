@@ -11,7 +11,9 @@ namespace AuthService.Domain.Models
         public string Login { get; set; }=string.Empty;
         public string PasswordHash { get; set; }=string.Empty;
         public DateTime CreatedAt { get; set; }
-        public TableToken TableToken { get; set; } = null!;
+        public List<UserSession> Sessions { get; set; } = new();
         public List<VerificationCode> VerificationCodes { get; set; } = new();
+        public List<ResetCode> ResetCodes { get; set; } = new();
+
     }
 }

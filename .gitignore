@@ -1,12 +1,23 @@
-# back
-bin/
-obj/
+# Visual Studio
+.vs/
 *.user
 *.suo
 
-# front
-node_modules/
-dist/
+# Build
+bin/
+obj/
 
-# System
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# Node
+node_modules/
+
+# Logs
 *.log
+
+# Env
+.env
