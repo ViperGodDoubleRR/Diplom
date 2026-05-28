@@ -3,30 +3,33 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
 using RabbitMQ.Client;
 namespace Shared.RabbitMQ.RabbitMq
 {
-    public  class RabbitMqConnection
+    public class RabbitMqConnection
     {
-        private readonly ConnectionFactory _connectionFactory;
-        private IConnection _iconnection;
+        private readonly ConnectionFactory _factory;
+        private IConnection? _connection;
 
-        public RabbitMqConnection(ConnectionFactory connectionFactory)
+        public RabbitMqConnection(ConnectionFactory factory)
         {
-            _connectionFactory = connectionFactory;
+            _factory = factory;
         }
 
-        public async Task ConnectAsync()
+        public async Task<IConnection> GetConnectionAsync()
         {
-            _iconnection = await _connectionFactory.CreateConnectionAsync();
-            
-        }
-        public async Task<IChannel> CreateNewChannel()
-        {
-            var channel = await _iconnection.CreateChannelAsync();
-            await channel.ExchangeDeclareAsync("social", "topic");
-            return channel;
+            if (_connection != null)
+                return _connection;
+
+            _connection = await _factory.CreateConnectionAsync();
+            return _connection;
         }
 
+        public async Task<IChannel> CreateChannelAsync()
+        {
+            var conn = await GetConnectionAsync();
+            return await conn.CreateChannelAsync();
+        }
     }
 }

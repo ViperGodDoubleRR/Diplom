@@ -76,6 +76,7 @@ var app = builder.Build();
 var rpcServer = app.Services.GetRequiredService<IRpcServer>();
 rpcServer.Start("auth.rpc");
 app.UseForwardedHeaders();
+app.UseRouting(); 
 
 app.UseCors("AllowAll");
 

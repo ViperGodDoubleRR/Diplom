@@ -15,8 +15,10 @@
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\RegService.Domain\RegService.Domain.csproj" />
+	  <ProjectReference Include="..\Shared.RabbitMQ\Shared.RabbitMQ.csproj" />
 	</ItemGroup>
 </Project>

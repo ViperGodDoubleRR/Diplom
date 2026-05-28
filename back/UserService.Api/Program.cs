@@ -1,25 +1,110 @@
+
+using System.Text;
+
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+
+using Shared.Application.Interfaces;
+using Shared.Infrastructure.Email;
+using Shared.Infrastructure.Security;
+using Shared.MinIO.Extensions;
+using Shared.MinIO.Interfaces;
+using Shared.MinIO.Services;
+using Shared.RabbitMQ;
+using Shared.RabbitMQ.EventBus.Abstractions;
+using Shared.RabbitMQ.EventBus.Events.User;
+using Shared.RabbitMQ.EventBus.RabbitMQ;
+using Shared.RabbitMQ.rpc.Abstraction;
+using Shared.RabbitMQ.rpc.Contracts.GetUserPost;
+
+using UserService.Application.Event.UserCreate;
+using UserService.Application.MediatR.SendEmail;
+using UserService.Application.RPC;
+using UserService.Domain.IRepository;
+using UserService.Infrastructure.Data;
+using UserService.Infrastructure.EfRepository;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
+builder.Services.AddRabbitMq();
+builder.Services.AddScoped<UserRegisteredHandler>();
+builder.Services.AddScoped<IRPCHandle<GetUserRpcRequest, GetUserRpcResponse>,GetUserRpcHandler>();
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+builder.Services.AddMinio(builder.Configuration);
+builder.Services.AddScoped<IMinioService, MinioService>();
+
+
+
+builder.Services.AddScoped<IUserRepository, EfUserRepository>();
+builder.Services.AddScoped<ISocialRepository, EfSocialRepository>();
+builder.Services.AddScoped<IMediaRepository, EfMediaRepository>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var app = builder.Build();
+//shared
+builder.Services.AddEmailSender(builder.Configuration);
+builder.Services.AddScoped<IHasher, Hasher>();
+builder.Services.AddScoped<ICodeGenerate, CodeGenerator>();
+builder.Services.AddDbContext<DbContextUser>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(SendEmailCommandCode).Assembly));
 
-// Configure the HTTP request pipeline.
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!)
+            ),
+
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+
+var app = builder.Build();
+var bus = app.Services.GetRequiredService<IEventBus>();
+var rpcServer = app.Services.GetRequiredService<IRpcServer>();
+rpcServer.Start("user.rpc");
+bus.Subscribe<CreateUserEvent, UserRegisteredHandler>();
+
+await bus.InitAsync();
+await bus.StartConsumingAsync("user-service");
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
+//app.UseHttpsRedirection();
+app.UseCors("AllowAll");
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();

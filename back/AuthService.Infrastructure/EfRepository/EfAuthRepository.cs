@@ -106,5 +106,28 @@ namespace AuthService.Infrastructure.EfRepository
 
             await _context.SaveChangesAsync(cancellationToken);
         }
+        public async Task UpdateSessionRefreshTokenAsync(int sessionId,string newRefreshTokenHash,
+            DateTime expiresAt,CancellationToken cancellationToken = default)
+        {
+            var session = await _context.UserSessions
+                .FirstOrDefaultAsync(x => x.Id == sessionId, cancellationToken);
+
+            if (session == null)
+                return;
+
+            session.RefreshToken = newRefreshTokenHash;
+            session.ExpiresAt = expiresAt;
+
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        public async Task<List<UserSession>> GetActiveSessions(CancellationToken cancellationToken = default)
+        {
+            return await _context.UserSessions
+                .Include(x => x.User)
+                .Where(x =>
+                    !x.IsRevoked &&
+                    x.ExpiresAt > DateTime.UtcNow)
+                .ToListAsync(cancellationToken);
+        }
     }
 }

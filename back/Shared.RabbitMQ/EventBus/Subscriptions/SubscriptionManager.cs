@@ -11,69 +11,31 @@ namespace Shared.RabbitMQ.EventBus.Subscriptions
 {
     public class SubscriptionManager
     {
+        private readonly Dictionary<string, List<Type>> _handlers = new();
+        private readonly Dictionary<string, Type> _eventTypes = new();
 
-        public Dictionary<Type, List<Type>> Handlers { get; } = new Dictionary<Type, List<Type>>();
-        public void AddSubscription<TEvent, THandle>()
+        public void AddSubscription<TEvent, THandler>()
             where TEvent : IIntegrationEvent
-            where THandle : IEventHandler<TEvent>
+            where THandler : IEventHandler<TEvent>
         {
-            var eventType = typeof(TEvent);
-            var handlerType = typeof(THandle);
+            var eventName = typeof(TEvent).Name;
 
-            var eventExists = Handlers.ContainsKey(eventType);
-            if (eventExists)
-            {
-                var handleExits = Handlers[eventType].Contains(handlerType);
-                if (!handleExits)
-                    Handlers[eventType].Add(handlerType);
-            }
-            else
-            {
-                Handlers.Add(eventType, new List<Type>());
-                Handlers[eventType].Add(handlerType);
-            }
+            _eventTypes[eventName] = typeof(TEvent);
 
-        }
-        public bool HasSubscriptionsForEvent<TEvent>()
-            where TEvent : IIntegrationEvent
-        {
-            var eventType = typeof(TEvent);
-            return Handlers.ContainsKey(eventType);
-        }
-        public List<Type> GetHandlersForEvent<TEvent>()
-    where TEvent : IIntegrationEvent
-        {
-            var eventType = typeof(TEvent);
+            if (!_handlers.ContainsKey(eventName))
+                _handlers[eventName] = new List<Type>();
 
-            if (Handlers.ContainsKey(eventType))
-                return Handlers[eventType];
-
-            return new List<Type>();
-        }
-        public Type GetEventTypeByName(string eventName)
-        {
-            return Handlers.Keys.FirstOrDefault(t => t.Name == eventName);
-        }
-        public void RemoveSubscription<TEvent, THandle>()
-    where TEvent : IIntegrationEvent
-    where THandle : IEventHandler<TEvent>
-        {
-            var eventType = typeof(TEvent);
-            var handlerType = typeof(THandle);
-
-            if (!Handlers.ContainsKey(eventType))
-                return;
-
-            Handlers[eventType].Remove(handlerType);
-
-            if (Handlers[eventType].Count == 0)
-                Handlers.Remove(eventType);
-        }
-        public void Clear()
-        {
-            Handlers.Clear();
+            _handlers[eventName].Add(typeof(THandler));
         }
 
+        public IEnumerable<string> GetEventNames() => _handlers.Keys;
+
+        public Type? GetEventType(string eventName)
+            => _eventTypes.TryGetValue(eventName, out var t) ? t : null;
+
+        public List<Type> GetHandlers(string eventName)
+            => _handlers.TryGetValue(eventName, out var list)
+                ? list
+                : new List<Type>();
     }
-
 }

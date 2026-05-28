@@ -1,20 +1,19 @@
+import { api } from "@/api/apiUrl";
 import type { ApiResponse } from "@/interface/ApiContracts/ApiResponse";
-import axios from "axios";
 import type { AuthGo } from "@/interface/DTO/AuthGo";
-export class AuthApi {
-  private api = axios.create({
-    baseURL: "http://localhost:5107/auth"
-  });
+import type { AuthGoResponse } from "@/interface/DTO/AuthGoResponse";
 
+export class AuthApi {
   async requestCode(email: string): Promise<ApiResponse<string>> {
-    const response= await this.api.get<ApiResponse<string>>("auth-request-code", {
-      params: { email: email }
+    const res = await api.get("/auth/auth-request-code", {
+      params: { email },
     });
-    return response.data;
+
+    return res.data;
   }
-  async authGo(data:AuthGo):Promise<ApiResponse<string>>{
-    console.log(data)
-    const response= await this.api.post("authorized-user",data);
-    return response.data;
+
+  async authGo(data: AuthGo): Promise<ApiResponse<AuthGoResponse>> {
+    const res = await api.post("/auth/authorized-user", data);
+    return res.data;
   }
 }

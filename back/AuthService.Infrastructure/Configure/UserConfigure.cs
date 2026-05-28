@@ -21,10 +21,10 @@ namespace AuthService.Infrastructure.Configure
               .HasForeignKey(r => r.ResCodeUserId)
               .OnDelete(DeleteBehavior.Cascade);
             builder
-     .HasMany(u => u.Sessions)
-     .WithOne(s => s.User)
-     .HasForeignKey(s => s.UserId)
-     .OnDelete(DeleteBehavior.Cascade);
+            .HasMany(u => u.Sessions)
+            .WithOne(s => s.User)
+            .HasForeignKey(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

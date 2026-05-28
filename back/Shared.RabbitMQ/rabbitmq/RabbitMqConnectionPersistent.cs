@@ -8,27 +8,22 @@ namespace Shared.RabbitMQ.RabbitMq
 {
     public class RabbitMqConnectionPersistent
     {
-        private readonly ConnectionFactory _connectionFactory;
         private readonly RabbitMqConnection _connection;
+
         public RabbitMqConnectionPersistent(RabbitMqOptions options)
         {
-            _connectionFactory = new ConnectionFactory
+            var factory = new ConnectionFactory
             {
                 HostName = options.HostName,
                 Port = options.Port,
                 UserName = options.UserName,
-                Password = options.Password,
-
-                HandshakeContinuationTimeout = TimeSpan.FromSeconds(60),
-                RequestedConnectionTimeout= TimeSpan.FromSeconds(60)
+                Password = options.Password
             };
-            _connection = new RabbitMqConnection(_connectionFactory);
-            
-            _connection.ConnectAsync().Wait();
+
+            _connection = new RabbitMqConnection(factory);
         }
-        public async Task<IChannel> CreateChannelAsync()
-        {
-            return await _connection.CreateNewChannel();
-        }
+
+        public Task<IChannel> CreateChannelAsync()
+            => _connection.CreateChannelAsync();
     }
 }

@@ -24,19 +24,14 @@ namespace AuthService.Application.MediatR.AuthGo
         private readonly IHasher _hasher;
         private readonly IJwtProvider _jwtProvider;
 
-        public AuthGoHandler(
-            IAuthRepository authRepository,
-            IHasher hasher,
-            IJwtProvider jwtProvider)
+        public AuthGoHandler(IAuthRepository authRepository,IHasher hasher,IJwtProvider jwtProvider)
         {
             _authRepository = authRepository;
             _hasher = hasher;
             _jwtProvider = jwtProvider;
         }
 
-        public async Task<ApiResponse<AuthGoResponse>> Handle(
-            AuthGoCommand command,
-            CancellationToken cancellationToken)
+        public async Task<ApiResponse<AuthGoResponse>> Handle(AuthGoCommand command,CancellationToken cancellationToken)
         {
             // 1. проверка кода
             var isCodeValid = await _authRepository

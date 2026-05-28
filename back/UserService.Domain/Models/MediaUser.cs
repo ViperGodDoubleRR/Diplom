@@ -9,10 +9,28 @@ namespace UserService.Domain.Models
     public class MediaUser
     {
         public int Id { get; set; }
-        public User User { get; set; } = null!;
+
         public Guid UserId { get; set; }
-        public string Name { get; set; }=string.Empty;
-        public string Type { get; set; }=string.Empty;
-        public DateTime CreateAt {  get; set; }
+        public User User { get; set; } = null!;
+
+        // 🪣 где лежит файл
+        public string Bucket { get; set; } = null!;
+
+        // 🔑 уникальный ключ файла в MinIO
+        public string FileKey { get; set; } = null!;
+
+        // 📄 оригинальное имя (для UI)
+        public string OriginalName { get; set; } = null!;
+
+        // 🧩 тип (avatar, post, video и т.д.)
+        public string MediaType { get; set; } = null!;
+
+        // 🎞 mime type
+        public string ContentType { get; set; } = null!;
+
+        // 📦 размер
+        public long Size { get; set; }
+
+        public DateTime CreatedAt { get; set; }
     }
 }

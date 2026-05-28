@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
+using RabbitMQ.Client;
+
 using Shared.RabbitMQ.EventBus.Abstractions;
 using Shared.RabbitMQ.EventBus.RabbitMQ;
 using Shared.RabbitMQ.EventBus.Subscriptions;
@@ -21,7 +23,25 @@ namespace Shared.RabbitMQ
                 Port = 5672
             });
 
-            services.AddSingleton<RabbitMqConnectionPersistent>();
+            services.AddSingleton<RabbitMqConnection>(sp =>
+            {
+                var opt = sp.GetRequiredService<RabbitMqOptions>();
+
+                return new RabbitMqConnection(
+                    new ConnectionFactory
+                    {
+                        HostName = opt.HostName,
+                        UserName = opt.UserName,
+                        Password = opt.Password,
+                        Port = opt.Port
+                    });
+            });
+
+            services.AddSingleton<RabbitMqConnectionPersistent>(sp =>
+            {
+                var opt = sp.GetRequiredService<RabbitMqOptions>();
+                return new RabbitMqConnectionPersistent(opt);
+            });
 
             services.AddSingleton<SubscriptionManager>();
             services.AddSingleton<IEventBus, RabbitMqEventBus>();
@@ -34,12 +54,12 @@ namespace Shared.RabbitMQ
                 .AddClasses(c => c.AssignableTo(typeof(IEventHandler<>)))
                 .AsImplementedInterfaces()
                 .WithTransientLifetime());
-
             services.Scan(scan => scan
-                .FromApplicationDependencies()
-                .AddClasses(c => c.AssignableTo(typeof(IRPCHandle<,>)))
-                .AsImplementedInterfaces()
-                .WithTransientLifetime());
+    .FromApplicationDependencies()
+    .AddClasses(c => c.AssignableTo(typeof(IRPCHandle<,>)))
+    .AsImplementedInterfaces()
+    .WithScopedLifetime());
+
             return services;
         }
     }

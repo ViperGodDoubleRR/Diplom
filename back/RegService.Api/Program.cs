@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
+using RegService.Application.Events;
 using RegService.Application.Mediatr.SendEmail;
 using RegService.Domain.IRepository;
 using RegService.Infrastructure.Data;
@@ -8,7 +9,10 @@ using RegService.Infrastructure.IEfRepository;
 using Shared.Application.Interfaces;
 using Shared.Infrastructure.Email;
 using Shared.Infrastructure.Security;
-using Shared.RabbitMQ;;
+using Shared.RabbitMQ;
+using Shared.RabbitMQ.EventBus.Abstractions;
+using Shared.RabbitMQ.EventBus.Events.User;
+using Shared.RabbitMQ.EventBus.RabbitMQ;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -36,7 +40,8 @@ builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(SendEmailCommandCode).Assembly));
 
 var app = builder.Build();
-
+var bus = app.Services.GetRequiredService<IEventBus>();
+await bus.InitAsync();
 app.UseCors("AllowAll");
     
 //app.UseHttpsRedirection();

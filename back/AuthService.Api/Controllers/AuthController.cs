@@ -1,11 +1,13 @@
 ﻿using AuthService.Api.DTO;
 using AuthService.Application.MediatR.AuthGo;
 using AuthService.Application.MediatR.AuthRequestCode;
+using AuthService.Application.MediatR.RefreshToken;
 using AuthService.Application.MediatR.ResCheckCode;
 using AuthService.Application.MediatR.ResRequestCode;
 
 using MediatR;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using Shared.Application.Contracts;
@@ -51,6 +53,20 @@ namespace Auth.Api.Controllers
             );
 
             var response = await _mediator.Send(command);
+
+            return Ok(response);
+        }
+
+        [AllowAnonymous]
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
+        {
+            _logger.LogInformation("🔄 REFRESH REQUEST: refreshToken={Token}", request.RefreshToken);
+
+            var command = new RefreshTokenCommand(request.RefreshToken);
+            var response = await _mediator.Send(command);
+                
+            _logger.LogInformation("🔄 REFRESH RESPONSE: {@Response}", response);
 
             return Ok(response);
         }

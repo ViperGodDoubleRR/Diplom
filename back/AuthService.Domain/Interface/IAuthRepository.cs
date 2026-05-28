@@ -16,5 +16,7 @@ namespace AuthService.Domain.Interface
         Task<User?> GetUserByEmail(string email, CancellationToken cancellationToken = default);
         Task CreateSession(Guid userId, string refreshToken, string deviceInfo,
             string ipAddress, CancellationToken cancellationToken);
+        Task UpdateSessionRefreshTokenAsync(int sessionId,string newRefreshToken,DateTime expiresAt,CancellationToken cancellationToken);
+        Task<List<UserSession>> GetActiveSessions(CancellationToken cancellationToken);
     }
 }
