@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 using Shared.Application.Interfaces;
+using Shared.Infrastructure.Email;
 using Shared.Infrastructure.JWT;
 using Shared.Infrastructure.Security;
 using Shared.RabbitMQ;
@@ -63,7 +64,11 @@ builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(ResCheckCodeCommand).Assembly));
 
 
-builder.Services.AddRabbitMq();
+builder.Services.AddEmailSender(builder.Configuration);
+builder.Services.AddRabbitMq(builder.Configuration);
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -73,8 +78,21 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DbContextAuth>();
+    db.Database.Migrate();
+}
+
 var rpcServer = app.Services.GetRequiredService<IRpcServer>();
 rpcServer.Start("auth.rpc");
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
 app.UseForwardedHeaders();
 app.UseRouting(); 
 
@@ -83,6 +101,7 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "auth" }));
 app.MapControllers();
 
 app.Run();

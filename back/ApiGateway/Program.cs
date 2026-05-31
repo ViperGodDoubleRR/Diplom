@@ -29,6 +29,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowAll");
 
 app.UseAuthorization();
+app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "gateway" }));
 app.MapReverseProxy();
 
 app.Run();

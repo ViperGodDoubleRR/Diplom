@@ -18,7 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 //rabbit and handler
-builder.Services.AddRabbitMq();
+builder.Services.AddRabbitMq(builder.Configuration);
 
 //shared
 builder.Services.AddEmailSender(builder.Configuration);
@@ -40,13 +40,19 @@ builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(SendEmailCommandCode).Assembly));
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DbContextReg>();
+    db.Database.Migrate();
+}
+
 var bus = app.Services.GetRequiredService<IEventBus>();
 await bus.InitAsync();
 app.UseCors("AllowAll");
     
 //app.UseHttpsRedirection();
 
-//app.UseAuthorization();
+app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "reg" }));
 
 app.MapControllers();
 

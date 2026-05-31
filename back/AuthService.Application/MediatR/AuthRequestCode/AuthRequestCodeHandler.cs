@@ -18,10 +18,15 @@ namespace AuthService.Application.MediatR.AuthRequestCode
     {
         private readonly IAuthRepository _authRepository;
         private readonly ICodeGenerate _code;
-        public AuthRequestCodeHandler(IAuthRepository respository, ICodeGenerate code)
+        private readonly IEmailSender _emailSender;
+        public AuthRequestCodeHandler(
+            IAuthRepository respository,
+            ICodeGenerate code,
+            IEmailSender emailSender)
         {
             _authRepository = respository;
             _code = code;
+            _emailSender = emailSender;
         }
         public async Task<ApiResponse<string>> Handle(AuthRequestCodeCommand command, CancellationToken cancellationToken)
         {
@@ -34,6 +39,7 @@ namespace AuthService.Application.MediatR.AuthRequestCode
             response.Success = isBool;
             if (response.Success)
             {
+                await _emailSender.SendConfirmationCodeAsync(command.Email, code);
                 response.Data = command.Email;
             }
             else

@@ -37,8 +37,8 @@ namespace AuthService.Application.MediatR.ResPassword
             {
                 response.Error = new ApiError
                 {
-                    Code = "RESET_PASSWORD_FALSH",
-                    Message = "Проблемы на сервере,попробуйте позже"
+                    Code = "RESET_PASSWORD_FAILED",
+                    Message = "Код не подтвержден или время подтверждения истекло"
                 };
             }
             return response;

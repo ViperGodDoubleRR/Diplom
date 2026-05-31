@@ -11,5 +11,6 @@ namespace CommentService.Domain.IRepository
     public interface ICommentRepository
     {
         Task AddAsync(Comment comment);
+        Task<List<Comment>> GetByPostIdAsync(Guid postId, CancellationToken cancellationToken);
     }
 }

@@ -32,4 +32,13 @@ namespace Shared.Infrastructure.Email
             await _client.SendMailAsync(message);
         }
     }
+
+    public class ConsoleEmailSender : IEmailSender
+    {
+        public Task SendConfirmationCodeAsync(string email, string code)
+        {
+            Console.WriteLine($"Confirmation code for {email}: {code}");
+            return Task.CompletedTask;
+        }
+    }
 }

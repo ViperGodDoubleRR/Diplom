@@ -8,20 +8,26 @@ namespace Shared.Infrastructure.Email
     {
         public static IServiceCollection AddEmailSender(this IServiceCollection services, IConfiguration configuration)
         {
-            var host = configuration["Smtp:Host"]
-           ?? throw new InvalidOperationException("SMTP Host is missing");
+            var host = configuration["Smtp:Host"];
 
-            var portString = configuration["Smtp:Port"]
-                             ?? throw new InvalidOperationException("SMTP Port is missing");
+            var portString = configuration["Smtp:Port"];
 
-            var login = configuration["Smtp:Login"]
-                        ?? throw new InvalidOperationException("SMTP Login is missing");
+            var login = configuration["Smtp:Login"];
 
-            var password = configuration["Smtp:Password"]
-                           ?? throw new InvalidOperationException("SMTP Password is missing");
+            var password = configuration["Smtp:Password"];
 
-            var from = configuration["Smtp:From"]
-                       ?? throw new InvalidOperationException("SMTP From is missing");
+            var from = configuration["Smtp:From"];
+
+            if (string.IsNullOrWhiteSpace(host) ||
+                string.IsNullOrWhiteSpace(portString) ||
+                string.IsNullOrWhiteSpace(login) ||
+                string.IsNullOrWhiteSpace(password) ||
+                string.IsNullOrWhiteSpace(from) ||
+                password.StartsWith("CHANGE_ME", StringComparison.OrdinalIgnoreCase))
+            {
+                services.AddScoped<IEmailSender, ConsoleEmailSender>();
+                return services;
+            }
 
             services.AddScoped<IEmailSender>(_ =>
                 new SmtpEmailSender(

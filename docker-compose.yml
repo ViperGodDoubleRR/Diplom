@@ -1,12 +1,42 @@
 version: "3.9"
 
+x-common-service-env: &common-service-env
+  ASPNETCORE_ENVIRONMENT: Development
+  ASPNETCORE_URLS: http://+:8080
+  RabbitMQ__Host: rabbitmq
+  RabbitMQ__UserName: guest
+  RabbitMQ__Password: guest
+  RabbitMQ__Port: 5672
+  Jwt__Secret: ${JWT_SECRET:-CHANGE_ME_SUPER_SECRET_KEY_32_CHARS_MIN}
+  Jwt__Issuer: AuthService
+  Jwt__Audience: AuthClient
+  Smtp__Host: ${SMTP_HOST:-}
+  Smtp__Port: ${SMTP_PORT:-587}
+  Smtp__Login: ${SMTP_LOGIN:-}
+  Smtp__Password: ${SMTP_PASSWORD:-CHANGE_ME_SMTP_PASSWORD}
+  Smtp__From: ${SMTP_FROM:-no-reply@example.com}
+
+x-minio-env: &minio-service-env
+  Minio__Endpoint: minio:9000
+  Minio__AccessKey: ${MINIO_ROOT_USER:-minioadmin}
+  Minio__SecretKey: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+  Minio__Secure: "false"
+
+x-service-depends-on: &service-depends-on
+  sqlserver:
+    condition: service_started
+  rabbitmq:
+    condition: service_started
+  minio:
+    condition: service_started
+
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sqlserver
     environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrong!Passw0rd
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd}
     ports:
       - "1433:1433"
     volumes:
@@ -36,8 +66,8 @@ services:
     container_name: minio
     command: server /data --console-address ":9001"
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin123
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
     ports:
       - "9000:9000"   # S3 API
       - "9001:9001"   # Web UI
@@ -51,13 +81,32 @@ services:
       context: ./back
       dockerfile: AuthService.Api/Dockerfile
     container_name: authservice
+    restart: on-failure
+    environment:
+      <<: *common-service-env
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=AuthDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
     ports:
-      - "5001:8080"
+      - "5290:8080"
     depends_on:
-      - sqlserver
-      - rabbitmq
-      - redis
-      - minio
+      <<: *service-depends-on
+    networks:
+      - neura-net
+
+  userservice:
+    build:
+      context: ./back
+      dockerfile: UserService.Api/Dockerfile
+    container_name: userservice
+    restart: on-failure
+    environment:
+      <<: [*common-service-env, *minio-service-env]
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=UserDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
+    ports:
+      - "5095:8080"
+    depends_on:
+      authservice:
+        condition: service_started
+      <<: *service-depends-on
     networks:
       - neura-net
 
@@ -66,13 +115,96 @@ services:
       context: ./back
       dockerfile: RegService.Api/Dockerfile
     container_name: regservice
+    restart: on-failure
+    environment:
+      <<: *common-service-env
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=RegDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
     ports:
-      - "5002:8080"
+      - "5291:8080"
     depends_on:
-      - sqlserver
-      - rabbitmq
-      - redis
-      - minio
+      authservice:
+        condition: service_started
+      userservice:
+        condition: service_started
+      <<: *service-depends-on
+    networks:
+      - neura-net
+
+  postservice:
+    build:
+      context: ./back
+      dockerfile: PostService.Api/Dockerfile
+    container_name: postservice
+    restart: on-failure
+    environment:
+      <<: [*common-service-env, *minio-service-env]
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=PostDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
+    ports:
+      - "5096:8080"
+    depends_on:
+      userservice:
+        condition: service_started
+      <<: *service-depends-on
+    networks:
+      - neura-net
+
+  commentservice:
+    build:
+      context: ./back
+      dockerfile: CommentService.Api/Dockerfile
+    container_name: commentservice
+    restart: on-failure
+    environment:
+      <<: [*common-service-env, *minio-service-env]
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=CommentDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
+    ports:
+      - "5097:8080"
+    depends_on:
+      <<: *service-depends-on
+    networks:
+      - neura-net
+
+  chatservice:
+    build:
+      context: ./back
+      dockerfile: ChatService.Api/Dockerfile
+    container_name: chatservice
+    restart: on-failure
+    environment:
+      <<: *common-service-env
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=ChatDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
+    ports:
+      - "5098:8080"
+    depends_on:
+      sqlserver:
+        condition: service_started
+    networks:
+      - neura-net
+
+  apigateway:
+    build:
+      context: ./back
+      dockerfile: ApiGateway/Dockerfile
+    container_name: apigateway
+    restart: on-failure
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ReverseProxy__Clusters__authCluster__Destinations__d1__Address: http://authservice:8080
+      ReverseProxy__Clusters__regCluster__Destinations__d1__Address: http://regservice:8080
+      ReverseProxy__Clusters__userCluster__Destinations__d1__Address: http://userservice:8080
+      ReverseProxy__Clusters__postCluster__Destinations__d1__Address: http://postservice:8080
+      ReverseProxy__Clusters__commentCluster__Destinations__d1__Address: http://commentservice:8080
+      ReverseProxy__Clusters__chatCluster__Destinations__d1__Address: http://chatservice:8080
+    ports:
+      - "5107:8080"
+    depends_on:
+      - authservice
+      - regservice
+      - userservice
+      - postservice
+      - commentservice
+      - chatservice
     networks:
       - neura-net
 
