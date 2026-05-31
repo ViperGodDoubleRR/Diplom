@@ -1,4 +1,13 @@
-﻿using AuthService.Application.MediatR.ResCheckCode;
+﻿//{====================================================================}
+//{ Модуль AuthController.cs}
+//{ гр.П41 }
+//{ Разработчик: Куприянович А.П }
+//{ Модифицирован: 27.05.2026 }
+//{ --------------------------------------------------------------------}
+//{модуль для восстановления пароля пользователя
+//{ ********************************************************************}  
+
+using AuthService.Application.MediatR.ResCheckCode;
 using AuthService.Application.MediatR.ResPassword;
 using AuthService.Application.MediatR.ResRequestCode;
 

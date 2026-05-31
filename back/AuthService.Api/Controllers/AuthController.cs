@@ -1,4 +1,15 @@
-﻿using AuthService.Api.DTO;
+﻿//{====================================================================}
+//{ Модуль AuthController.cs}
+//{ гр.П41 }
+//{ Разработчик: Куприянович А.П }
+//{ Модифицирован: 27.05.2026 }
+//{ --------------------------------------------------------------------}
+//{модуль для работы аутентификации пользователя а так же выдачи токена
+//{ ********************************************************************}  
+
+
+
+using AuthService.Api.DTO;
 using AuthService.Application.MediatR.AuthGo;
 using AuthService.Application.MediatR.AuthRequestCode;
 using AuthService.Application.MediatR.RefreshToken;

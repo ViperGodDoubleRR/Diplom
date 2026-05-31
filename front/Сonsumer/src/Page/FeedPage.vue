@@ -112,7 +112,7 @@
               ⭐ {{ post.favoritesCount }}
             </button>
 
-            <button class="action comments">
+            <button class="action comments" @click="openComments(post)">
               💬 {{ post.commentsCount }}
             </button>
 
@@ -125,7 +125,7 @@
     </section>
 
     <EditPostModal v-model="editModal" :post="editingPost" @save="savePost" />
-
+    <CommentsModal v-model="commentsModal" :post-id="selectedPostId" />
   </div>
 </template>
 <script setup lang="ts">
@@ -136,7 +136,7 @@ import EditPostModal from "@/components/EditPostModal.vue";
 import type { PostFull } from "@/interface/models/post/PostFull";
 import { ref } from "vue";
 import { useUserStore } from "@/store/userStore";
-
+import CommentsModal from "@/components/ui/CommentsModal.vue";
 const userStore = useUserStore();
 const mediaIndexes = ref<Record<string, number>>({});
 const route = useRoute();
@@ -147,7 +147,8 @@ const userId = computed(() => route.params.userId as string | undefined);
 const editModal = ref(false);
 // posts
 const posts = computed(() => postStore.feedPosts);
-
+const commentsModal = ref(false);
+const selectedPostId = ref<string | null>(null);
 const avatarFallback = "https://i.pravatar.cc/300";
 const openedMenu = ref<string | null>(null);
 function editPost(post: PostFull) {
@@ -157,7 +158,10 @@ function editPost(post: PostFull) {
   editModal.value = true;
   openedMenu.value = null;
 }
-
+function openComments(post: PostFull) {
+  selectedPostId.value = post.id;
+  commentsModal.value = true;
+}
 async function savePost(updated: any) {
   await postStore.updatePost(updated.id, {
     description: updated.description,
