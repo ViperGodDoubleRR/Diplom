@@ -2,6 +2,7 @@
 
 using CommentService.Application.DTO;
 using CommentService.Application.MediatR.CreateComment;
+using CommentService.Application.MediatR.GetPostComments;
 
 using MediatR;
 
@@ -19,6 +20,18 @@ namespace CommentService.Api.Controllers
         {
             _mediator = mediator;
         }
+
+        [HttpGet("comment/post/{postId:guid}")]
+        public async Task<IActionResult> GetPostComments(Guid postId)
+        {
+            var result = await _mediator.Send(new GetPostCommentsQuery
+            {
+                PostId = postId
+            });
+
+            return Ok(result);
+        }
+
         [Authorize]
         [HttpPost("comment")]
         public async Task<IActionResult> CreateComment(

@@ -20,9 +20,10 @@ using Shared.Application.Contracts;
 using Shared.Application.Interfaces;
 using AuthService.Api.DTO;
 
-namespace Auth.Api.Controllers
+namespace AuthService.Api.Controllers
 {
     [ApiController]
+    [Route("")]
     public class ResController : ControllerBase
     {
         private readonly IMediator _mediator;

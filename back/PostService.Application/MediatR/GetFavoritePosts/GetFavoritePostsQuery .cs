@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using MediatR;
 
 using PostService.Application.DTO;
-using PostService.Application.DTO.PostService.Application.DTO;
 
 using Shared.Application.Contracts;
 

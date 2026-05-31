@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 
 using RabbitMQ.Client;
 
@@ -13,14 +14,16 @@ namespace Shared.RabbitMQ
 
     public static class RabbitMqExtensions
     {
-        public static IServiceCollection AddRabbitMq(this IServiceCollection services)
+        public static IServiceCollection AddRabbitMq(
+            this IServiceCollection services,
+            IConfiguration? configuration = null)
         {
             services.AddSingleton(new RabbitMqOptions
             {
-                HostName = "localhost",
-                UserName = "guest",
-                Password = "guest",
-                Port = 5672
+                HostName = configuration?["RabbitMQ:Host"] ?? "localhost",
+                UserName = configuration?["RabbitMQ:UserName"] ?? "guest",
+                Password = configuration?["RabbitMQ:Password"] ?? "guest",
+                Port = int.TryParse(configuration?["RabbitMQ:Port"], out var port) ? port : 5672
             });
 
             services.AddSingleton<RabbitMqConnection>(sp =>

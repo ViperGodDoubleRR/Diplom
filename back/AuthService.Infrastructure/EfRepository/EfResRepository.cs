@@ -70,7 +70,19 @@ namespace AuthService.Infrastructure.EfRepository
                 if (user == null)
                     return false;
 
+                var verifiedCode = await _context.ResetCodes
+                    .OrderByDescending(x => x.CreatedAt)
+                    .FirstOrDefaultAsync(
+                        x => x.ResCodeUserId == user.Id &&
+                             x.IsUsed &&
+                             x.ExpiresAt > DateTime.UtcNow,
+                        cancellationToken);
+
+                if (verifiedCode == null)
+                    return false;
+
                 user.PasswordHash = newpassword;
+                verifiedCode.ExpiresAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync(cancellationToken);
 

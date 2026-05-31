@@ -12,7 +12,7 @@ using PostService.Application.MediatR.CreatePost;
 using Shared.MinIO.Extensions;
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRabbitMq();
+builder.Services.AddRabbitMq(builder.Configuration);
 builder.Services.AddScoped<IPostRepository, EfPostRepository>();
 builder.Services.AddScoped<IPostMediaRepository,EfPostMediaRepository>();
 
@@ -27,6 +27,16 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<DbContextPost>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -52,6 +62,11 @@ builder.Services
 
 builder.Services.AddAuthorization();
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DbContextPost>();
+    db.Database.Migrate();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -59,9 +74,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "post" }));
 app.MapControllers();
 
 app.Run();

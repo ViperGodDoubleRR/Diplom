@@ -24,9 +24,10 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Application.Contracts;
 using Shared.Application.Contracts.AuthJWT;
 
-namespace Auth.Api.Controllers
+namespace AuthService.Api.Controllers
 {
     [ApiController]
+    [Route("")]
     public class AuthController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -72,7 +73,7 @@ namespace Auth.Api.Controllers
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
         {
-            _logger.LogInformation("🔄 REFRESH REQUEST: refreshToken={Token}", request.RefreshToken);
+            _logger.LogInformation("Refresh token request received.");
 
             var command = new RefreshTokenCommand(request.RefreshToken);
             var response = await _mediator.Send(command);

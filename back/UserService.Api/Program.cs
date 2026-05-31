@@ -27,7 +27,7 @@ using UserService.Infrastructure.EfRepository;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddRabbitMq();
+builder.Services.AddRabbitMq(builder.Configuration);
 builder.Services.AddScoped<UserRegisteredHandler>();
 builder.Services.AddScoped<IRPCHandle<GetUserRpcRequest, GetUserRpcResponse>,GetUserRpcHandler>();
 builder.Services.AddControllers();
@@ -88,6 +88,12 @@ builder.Services.AddAuthorization();
 
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DbContextUser>();
+    db.Database.Migrate();
+}
+
 var bus = app.Services.GetRequiredService<IEventBus>();
 var rpcServer = app.Services.GetRequiredService<IRpcServer>();
 rpcServer.Start("user.rpc");
@@ -105,6 +111,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "user" }));
 app.MapControllers();
 
 app.Run();
