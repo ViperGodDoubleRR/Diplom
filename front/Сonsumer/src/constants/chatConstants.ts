@@ -1,0 +1,3 @@
+export const CHAT_MESSAGE_PAGE_SIZE = 50;
+export const CHAT_MEDIA_MAX_BYTES = 300 * 1024 * 1024;
+export const CHAT_SEARCH_DEBOUNCE_MS = 350;

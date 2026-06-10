@@ -1,20 +1,7 @@
-﻿//{====================================================================}
-//{ Модуль AuthController.cs}
-//{ гр.П41 }
-//{ Разработчик: Куприянович А.П }
-//{ Модифицирован: 27.05.2026 }
-//{ --------------------------------------------------------------------}
-//{модуль для работы аутентификации пользователя а так же выдачи токена
-//{ ********************************************************************}  
-
-
-
-using AuthService.Api.DTO;
+﻿using AuthService.Api.DTO;
 using AuthService.Application.MediatR.AuthGo;
 using AuthService.Application.MediatR.AuthRequestCode;
 using AuthService.Application.MediatR.RefreshToken;
-using AuthService.Application.MediatR.ResCheckCode;
-using AuthService.Application.MediatR.ResRequestCode;
 
 using MediatR;
 
@@ -24,26 +11,28 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Application.Contracts;
 using Shared.Application.Contracts.AuthJWT;
 
-namespace Auth.Api.Controllers
+namespace AuthService.Api.Controllers
 {
     [ApiController]
     public class AuthController : ControllerBase
     {
         private readonly IMediator _mediator;
         private readonly ILogger<AuthController> _logger;
+
         public AuthController(IMediator mediator, ILogger<AuthController> logger)
         {
-            _mediator=mediator;
-            _logger=logger;
+            _mediator = mediator;
+            _logger = logger;
         }
+
         [HttpGet("auth-request-code")]
-        public async Task<IActionResult> RequestCode(string email)
+        public async Task<IActionResult> RequestCode([FromQuery] string email)
         {
-            var command = new AuthRequestCodeCommand(email);
-            ApiResponse<string> response = await _mediator.Send(command);
-            _logger.LogInformation("Ответ клиенту: {@response}", response);
+            var response = await _mediator.Send(new AuthRequestCodeCommand(email));
+            _logger.LogInformation("auth-request-code: Success={Success}", response.Success);
             return Ok(response);
         }
+
         [HttpPost("authorized-user")]
         public async Task<IActionResult> AuthorizedUser([FromBody] AuthGoRequest request)
         {
@@ -60,8 +49,7 @@ namespace Auth.Api.Controllers
                 request.Password,
                 request.Code,
                 request.DeviceInfo,
-                ipAddress
-            );
+                ipAddress);
 
             var response = await _mediator.Send(command);
 
@@ -72,13 +60,8 @@ namespace Auth.Api.Controllers
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
         {
-            _logger.LogInformation("🔄 REFRESH REQUEST: refreshToken={Token}", request.RefreshToken);
-
-            var command = new RefreshTokenCommand(request.RefreshToken);
-            var response = await _mediator.Send(command);
-                
-            _logger.LogInformation("🔄 REFRESH RESPONSE: {@Response}", response);
-
+            var response = await _mediator.Send(new RefreshTokenCommand(request.RefreshToken));
+            _logger.LogInformation("refresh: Success={Success}", response.Success);
             return Ok(response);
         }
     }

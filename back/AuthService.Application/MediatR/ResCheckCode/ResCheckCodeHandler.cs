@@ -1,56 +1,60 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using AuthService.Application.MediatR.ResRequestCode;
-using AuthService.Domain.Interface;
+﻿using AuthService.Domain.Interface;
 
 using MediatR;
 
 using Shared.Application.Contracts;
+using Shared.Application.Interfaces;
+using Shared.Application.Validation;
 
 namespace AuthService.Application.MediatR.ResCheckCode
 {
-    public class ResCheckCodeHandler: IRequestHandler<ResCheckCodeCommand, ApiResponse<string>>
+    public class ResCheckCodeHandler : IRequestHandler<ResCheckCodeCommand, ApiResponse<string>>
     {
         private readonly IResRepository _resRepository;
-        public ResCheckCodeHandler(IResRepository resRepository)
+        private readonly IJwtProvider _jwtProvider;
+
+        public ResCheckCodeHandler(IResRepository resRepository, IJwtProvider jwtProvider)
         {
-            _resRepository=resRepository;
+            _resRepository = resRepository;
+            _jwtProvider = jwtProvider;
         }
-        public async Task<ApiResponse<string>> Handle(ResCheckCodeCommand command, CancellationToken cancellationToken)
+
+        public async Task<ApiResponse<string>> Handle(
+            ResCheckCodeCommand command,
+            CancellationToken cancellationToken)
         {
-            ApiResponse<string> response = new ApiResponse<string>();
-            try
+            if (!InputValidator.IsValidEmail(command.Email))
             {
-                var IsCheck = await _resRepository.CheckCode(command.Email, command.Code, cancellationToken);
-                response.Success = IsCheck;
-                if (response.Success)
-                {
-                    response.Data = command.Code;
-                    
-                }
-                else
-                {
-                    response.Error = new ApiError
-                    {
-                        Code = "INVALID_CODE",
-                        Message = "Неправильный код"
-                    };
-                }
-                return response;
+                return Fail("INVALID_EMAIL", "Некорректный email");
             }
-            catch
+
+            if (string.IsNullOrWhiteSpace(command.Code))
             {
-                response.Error = new ApiError
-                {
-                    Code = "SERVER_PROBLEM",
-                    Message = "Проблема в сервере,повторите попытку позже"
-                };
-                return response;
+                return Fail("INVALID_CODE", "Код обязателен");
             }
+
+            var email = InputValidator.NormalizeEmail(command.Email);
+            var isValid = await _resRepository.CheckCode(email, command.Code, cancellationToken);
+
+            if (!isValid)
+            {
+                return Fail("INVALID_CODE", "Неправильный или просроченный код");
+            }
+
+            var resetToken = _jwtProvider.GeneratePasswordResetToken(email);
+
+            return new ApiResponse<string>
+            {
+                Success = true,
+                Data = resetToken
+            };
         }
+
+        private static ApiResponse<string> Fail(string code, string message) =>
+            new()
+            {
+                Success = false,
+                Error = new ApiError { Code = code, Message = message }
+            };
     }
 }

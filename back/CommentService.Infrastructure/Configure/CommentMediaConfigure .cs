@@ -25,7 +25,7 @@ namespace CommentService.Infrastructure.Configure
             builder.Property(x => x.Size).IsRequired();
             builder.Property(x => x.CreatedAt).IsRequired();
 
-            builder.HasIndex(x => x.CommentId);
+            builder.HasIndex(x => x.CommentId).IsUnique();
         }
     }
 }

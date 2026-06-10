@@ -15,5 +15,7 @@ namespace UserService.Application.DTO
         public string? Tag { get; set; }
 
         public string? AvatarUrl { get; set; }
+
+        public bool AvatarIsVideo { get; set; }
     }
 }

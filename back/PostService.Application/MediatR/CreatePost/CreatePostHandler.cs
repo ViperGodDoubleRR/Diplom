@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using MediatR;
+﻿using MediatR;
 
 using PostService.Application.DTO;
+using PostService.Application.Validation;
 using PostService.Domain.IRepository;
 using PostService.Domain.Models;
 
@@ -28,17 +23,12 @@ namespace PostService.Application.MediatR.CreatePost
             CreatePostCommand request,
             CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(request.Description))
+            if (!PostValidation.TryValidateDescription(
+                    request.Description,
+                    out var code,
+                    out var message))
             {
-                return new ApiResponse<CreatePostResponse>
-                {
-                    Success = false,
-                    Error = new ApiError
-                    {
-                        Code = "DESCRIPTION_REQUIRED",
-                        Message = "Description is required"
-                    }
-                };
+                return Fail(code, message);
             }
 
             var post = new Post
@@ -50,16 +40,20 @@ namespace PostService.Application.MediatR.CreatePost
                 IsDeleted = false
             };
 
-            await _postRepository.AddAsync(post);
+            await _postRepository.AddAsync(post, cancellationToken);
 
             return new ApiResponse<CreatePostResponse>
             {
                 Success = true,
-                Data = new CreatePostResponse
-                {
-                    Id = post.Id
-                }
+                Data = new CreatePostResponse { Id = post.Id }
             };
         }
+
+        private static ApiResponse<CreatePostResponse> Fail(string code, string message) =>
+            new()
+            {
+                Success = false,
+                Error = new ApiError { Code = code, Message = message }
+            };
     }
 }

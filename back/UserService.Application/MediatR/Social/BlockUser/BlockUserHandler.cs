@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MediatR;
 
-using MediatR;
+using Microsoft.Extensions.Logging;
 
 using Shared.Application.Contracts;
 
@@ -13,20 +9,20 @@ using UserService.Domain.Models;
 
 namespace UserService.Application.MediatR.BlockUser
 {
-    public class BlockUserHandler
-        : IRequestHandler<
-            BlockUserCommand,
-            ApiResponse<bool>>
+    public class BlockUserHandler : IRequestHandler<BlockUserCommand, ApiResponse<bool>>
     {
         private readonly IUserRepository _userRepository;
         private readonly ISocialRepository _socialRepository;
+        private readonly ILogger<BlockUserHandler> _logger;
 
         public BlockUserHandler(
             IUserRepository userRepository,
-            ISocialRepository socialRepository)
+            ISocialRepository socialRepository,
+            ILogger<BlockUserHandler> logger)
         {
             _userRepository = userRepository;
             _socialRepository = socialRepository;
+            _logger = logger;
         }
 
         public async Task<ApiResponse<bool>> Handle(
@@ -34,66 +30,48 @@ namespace UserService.Application.MediatR.BlockUser
             CancellationToken cancellationToken)
         {
             if (request.MyId == request.BlackId)
-            {
-                return new ApiResponse<bool>
-                {
-                    Success = false,
-                    Error = new ApiError
-                    {
-                        Code = "SELF_BLOCK",
-                        Message = "You cannot block yourself"
-                    }
-                };
-            }
+                return Fail("SELF_BLOCK", "Нельзя заблокировать себя");
 
-            var user =
-                await _userRepository.GetByIdAsync(
-                    request.BlackId);
+            var user = await _userRepository.GetByIdAsync(request.BlackId, cancellationToken);
 
             if (user is null)
-            {
-                return new ApiResponse<bool>
-                {
-                    Success = false,
-                    Error = new ApiError
-                    {
-                        Code = "USER_NOT_FOUND",
-                        Message = "User not found"
-                    }
-                };
-            }
+                return Fail("USER_NOT_FOUND", "Пользователь не найден");
 
-            var exists =
-                await _socialRepository.IsBlockedExistsAsync(
+            if (await _socialRepository.IsBlockedExistsAsync(
                     request.MyId,
-                    request.BlackId);
-
-            if (exists)
+                    request.BlackId,
+                    cancellationToken))
             {
-                return new ApiResponse<bool>
-                {
-                    Success = false,
-                    Error = new ApiError
-                    {
-                        Code = "ALREADY_BLOCKED",
-                        Message = "User already blocked"
-                    }
-                };
+                return Fail("ALREADY_BLOCKED", "Пользователь уже заблокирован");
             }
 
-            var entity = new BlackList
+            var friendship = await _socialRepository.GetFriendAsync(
+                request.MyId,
+                request.BlackId,
+                cancellationToken);
+
+            if (friendship is not null)
+                await _socialRepository.RemoveFriendAsync(friendship, cancellationToken);
+
+            await _socialRepository.AddBlockAsync(new BlackList
             {
                 MyId = request.MyId,
                 BlackId = request.BlackId
-            };
+            }, cancellationToken);
 
-            await _socialRepository.AddBlockAsync(entity);
+            _logger.LogInformation(
+                "User {MyId} blocked user {BlackId}",
+                request.MyId,
+                request.BlackId);
 
-            return new ApiResponse<bool>
-            {
-                Success = true,
-                Data = true
-            };
+            return new ApiResponse<bool> { Success = true, Data = true };
         }
+
+        private static ApiResponse<bool> Fail(string code, string message) =>
+            new()
+            {
+                Success = false,
+                Error = new ApiError { Code = code, Message = message }
+            };
     }
 }

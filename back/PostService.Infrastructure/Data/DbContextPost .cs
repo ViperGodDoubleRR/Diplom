@@ -1,24 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
-
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 using PostService.Domain.Models;
 using PostService.Infrastructure.Configure;
+
 namespace PostService.Infrastructure.Data
 {
     public class DbContextPost : DbContext
     {
-        public DbContextPost(
-            DbContextOptions<DbContextPost> options)
+        public DbContextPost(DbContextOptions<DbContextPost> options)
             : base(options)
         {
         }
-
 
         public DbSet<Post> Posts { get; set; }
 
@@ -30,24 +22,14 @@ namespace PostService.Infrastructure.Data
 
         public DbSet<FavoritePost> FavoritePosts { get; set; }
 
-
-        protected override void OnModelCreating(
-            ModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.ApplyConfiguration(
-                new PostConfigure());
+            modelBuilder.ApplyConfiguration(new PostConfigure());
+            modelBuilder.ApplyConfiguration(new PostMediaConfigure());
+            modelBuilder.ApplyConfiguration(new PostReactionConfigure());
+            modelBuilder.ApplyConfiguration(new LikedPostConfigure());
+            modelBuilder.ApplyConfiguration(new FavoritePostConfigure());
 
-            modelBuilder.ApplyConfiguration(
-                new PostMediaConfigure());
-
-            modelBuilder.ApplyConfiguration(
-                new PostReactionConfigure());
-
-            modelBuilder.ApplyConfiguration(
-                new LikedPostConfigure());
-
-            modelBuilder.ApplyConfiguration(
-                new FavoritePostConfigure());
             base.OnModelCreating(modelBuilder);
         }
     }

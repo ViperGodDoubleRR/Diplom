@@ -1,17 +1,6 @@
-﻿//{====================================================================}
-//{ Модуль AuthController.cs}
-//{ гр.П41 }
-//{ Разработчик: Куприянович А.П }
-//{ Модифицирован: 27.05.2026 }
-//{ --------------------------------------------------------------------}
-//{модуль для загрузки медиа пользователя
-//{ ********************************************************************}  
-using System.Security.Claims;
-
-using MediatR;
+﻿using MediatR;
 
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 using UserService.Application.DTO;
@@ -20,6 +9,8 @@ using UserService.Application.MediatR.DeleteAvatar;
 using UserService.Application.MediatR.GetMyMedia;
 using UserService.Application.MediatR.ReplaceMedia;
 using UserService.Application.MediatR.UploadAvatar;
+using UserService.Api.Extensions;
+
 namespace UserService.Api.Controllers
 {
     [ApiController]
@@ -35,97 +26,80 @@ namespace UserService.Api.Controllers
 
         [Authorize]
         [HttpPost("media-upload")]
-        public async Task<IActionResult> UploadAvatar(
-            [FromForm] UploadMediaRequest request)
+        public async Task<IActionResult> UploadAvatar([FromForm] UploadMediaRequest request)
         {
-            var userIdClaim = User.FindFirst(
-                ClaimTypes.NameIdentifier
-            );
-
-            if (userIdClaim is null)
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
-            var command = new UploadAvatarCommand
+
+            var result = await _mediator.Send(new UploadAvatarCommand
             {
-                UserId = Guid.Parse(userIdClaim.Value),
+                UserId = userId.Value,
                 File = request.File,
                 MediaType = request.MediaType
-            };
-
-            var result = await _mediator.Send(command);
+            });
 
             return Ok(result);
         }
+
         [Authorize]
         [HttpGet("media")]
         public async Task<IActionResult> GetMyMedia()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim is null)
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
-            var query = new GetMyMediaQuery
-            {
-                UserId = Guid.Parse(userIdClaim.Value)
-            };
 
-            var result = await _mediator.Send(query);
-
+            var result = await _mediator.Send(new GetMyMediaQuery { UserId = userId.Value });
             return Ok(result);
         }
+
         [Authorize]
-        [HttpDelete("/media/{mediaId}")]
+        [HttpDelete("media/{mediaId:int}")]
         public async Task<IActionResult> DeleteMedia(int mediaId)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim is null)
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
-            
-            var command = new DeleteMediaCommand
-            {
-                UserId = Guid.Parse(userIdClaim.Value),
-                MediaId = mediaId
-            };
 
-            var result = await _mediator.Send(command);
+            var result = await _mediator.Send(new DeleteMediaCommand
+            {
+                UserId = userId.Value,
+                MediaId = mediaId
+            });
 
             return Ok(result);
         }
+
         [Authorize]
         [HttpDelete("media")]
         public async Task<IActionResult> DeleteAllMedia()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim is null)
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
-            var command = new DeleteAllMediaCommand
-            {
-                UserId = Guid.Parse(userIdClaim.Value)
-            };
 
-            var result = await _mediator.Send(command);
-
+            var result = await _mediator.Send(new DeleteAllMediaCommand { UserId = userId.Value });
             return Ok(result);
         }
-        [Authorize]
-        [HttpPut("media/replace/{mediaId}")]
-        public async Task<IActionResult> ReplaceMedia(int mediaId, [FromForm] ReplaceMediaRequest request)
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
 
-            if (userIdClaim is null)
+        [Authorize]
+        [HttpPut("media/replace/{mediaId:int}")]
+        public async Task<IActionResult> ReplaceMedia(
+            int mediaId,
+            [FromForm] ReplaceMediaRequest request)
+        {
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
 
-            var command = new ReplaceMediaCommand
+            var result = await _mediator.Send(new ReplaceMediaCommand
             {
-                UserId = Guid.Parse(userIdClaim.Value),
+                UserId = userId.Value,
                 MediaId = mediaId,
                 File = request.File,
                 MediaType = request.MediaType
-            };
-
-            var result = await _mediator.Send(command);
+            });
 
             return Ok(result);
         }

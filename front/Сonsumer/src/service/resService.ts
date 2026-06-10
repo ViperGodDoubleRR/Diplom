@@ -1,19 +1,29 @@
 import { ResApi } from "@/api/resApi";
 import type { ApiResponse } from "@/interface/ApiContracts/ApiResponse";
+
 export class ResService {
   private api = new ResApi();
 
-  async requestCode(email: string) {
-    const response = await this.api.requestCode(email);
-    console.log(response);
-    return response;
+  requestCode(email: string): Promise<ApiResponse<string>> {
+    return this.api.requestCode(email.trim().toLowerCase());
   }
-  async checkCode(email:string,code:string):Promise<ApiResponse<string>>{
-    const response= await this.api.checkCode(email,code);
-    return response;
+
+  checkCode(email: string, code: string): Promise<ApiResponse<string>> {
+    return this.api.checkCode(
+      email.trim().toLowerCase(),
+      code.trim().toUpperCase()
+    );
   }
-  async changePassword(email:string,password:string):Promise<ApiResponse<string>>{
-    const response = await this.api.changePassword(email,password);
-    return response;
+
+  changePassword(
+    email: string,
+    password: string,
+    resetToken: string
+  ): Promise<ApiResponse<string>> {
+    return this.api.changePassword(
+      email.trim().toLowerCase(),
+      password,
+      resetToken
+    );
   }
 }

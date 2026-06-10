@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MediatR;
 
-using MediatR;
+using Microsoft.Extensions.Logging;
 
 using Shared.Application.Contracts;
 
@@ -13,91 +9,70 @@ using UserService.Domain.Models;
 
 namespace UserService.Application.MediatR.AddFriend
 {
-    public class AddFriendHandler
-        : IRequestHandler<
-            AddFriendCommand,
-            ApiResponse<bool>>
+    public class AddFriendHandler : IRequestHandler<AddFriendCommand, ApiResponse<bool>>
     {
         private readonly IUserRepository _userRepository;
         private readonly ISocialRepository _socialRepository;
+        private readonly ILogger<AddFriendHandler> _logger;
 
         public AddFriendHandler(
             IUserRepository userRepository,
-            ISocialRepository socialRepository)
+            ISocialRepository socialRepository,
+            ILogger<AddFriendHandler> logger)
         {
             _userRepository = userRepository;
             _socialRepository = socialRepository;
+            _logger = logger;
         }
 
         public async Task<ApiResponse<bool>> Handle(
             AddFriendCommand request,
             CancellationToken cancellationToken)
         {
-            // нельзя добавить себя
             if (request.MyId == request.FriendId)
-            {
-                return new ApiResponse<bool>
-                {
-                    Success = false,
-                    Error = new ApiError
-                    {
-                        Code = "SELF_FRIEND",
-                        Message = "You cannot add yourself"
-                    }
-                };
-            }
+                return Fail("SELF_FRIEND", "Нельзя добавить себя в друзья");
 
-            // существует ли юзер
-            var friend =
-                await _userRepository.GetByIdAsync(
-                    request.FriendId);
+            var friend = await _userRepository.GetByIdAsync(request.FriendId, cancellationToken);
 
             if (friend is null)
-            {
-                return new ApiResponse<bool>
-                {
-                    Success = false,
-                    Error = new ApiError
-                    {
-                        Code = "USER_NOT_FOUND",
-                        Message = "User not found"
-                    }
-                };
-            }
+                return Fail("USER_NOT_FOUND", "Пользователь не найден");
 
-            // уже есть?
-            var exists =
-                await _socialRepository.IsFriendExistsAsync(
+            if (await _socialRepository.IsBlockedBetweenAsync(
                     request.MyId,
-                    request.FriendId);
-
-            if (exists)
+                    request.FriendId,
+                    cancellationToken))
             {
-                return new ApiResponse<bool>
-                {
-                    Success = false,
-                    Error = new ApiError
-                    {
-                        Code = "ALREADY_FRIEND",
-                        Message = "Already in friends"
-                    }
-                };
+                return Fail("USER_BLOCKED", "Невозможно добавить этого пользователя");
             }
 
-            var entity = new FriendList
+            if (await _socialRepository.IsFriendExistsAsync(
+                    request.MyId,
+                    request.FriendId,
+                    cancellationToken))
+            {
+                return Fail("ALREADY_FRIEND", "Пользователь уже в друзьях");
+            }
+
+            await _socialRepository.AddFriendAsync(new FriendList
             {
                 MyId = request.MyId,
                 FriendId = request.FriendId,
                 ChangeLogin = friend.Login
-            };
+            }, cancellationToken);
 
-            await _socialRepository.AddFriendAsync(entity);
+            _logger.LogInformation(
+                "User {MyId} added friend {FriendId}",
+                request.MyId,
+                request.FriendId);
 
-            return new ApiResponse<bool>
-            {
-                Success = true,
-                Data = true
-            };
+            return new ApiResponse<bool> { Success = true, Data = true };
         }
+
+        private static ApiResponse<bool> Fail(string code, string message) =>
+            new()
+            {
+                Success = false,
+                Error = new ApiError { Code = code, Message = message }
+            };
     }
 }

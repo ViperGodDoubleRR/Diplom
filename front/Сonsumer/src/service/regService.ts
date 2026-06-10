@@ -1,19 +1,29 @@
 import { RegApi } from "@/api/regApi";
 import type { ApiResponse } from "@/interface/ApiContracts/ApiResponse";
+
 export class RegService {
   private api = new RegApi();
 
-  async sendEmail(email: string) {
-    const response = await this.api.sendEmail(email);
-    console.log(response);
-    return response;
+  sendEmail(email: string): Promise<ApiResponse<string>> {
+    return this.api.sendEmail(email.trim().toLowerCase());
   }
-  async checkCode(email:string,code:string):Promise<ApiResponse<string>>{
-    const response= await this.api.checkCode(email,code);
-    return response;
+
+  checkCode(email: string, code: string): Promise<ApiResponse<string>> {
+    return this.api.checkCode(
+      email.trim().toLowerCase(),
+      code.trim().toUpperCase()
+    );
   }
-  async registerUser(email:string,login:string,password:string):Promise<ApiResponse<string>>{
-    const response = await this.api.registerUser(email,login,password);
-    return response;
+
+  registerUser(
+    email: string,
+    login: string,
+    password: string
+  ): Promise<ApiResponse<string>> {
+    return this.api.registerUser(
+      email.trim().toLowerCase(),
+      login.trim(),
+      password
+    );
   }
 }

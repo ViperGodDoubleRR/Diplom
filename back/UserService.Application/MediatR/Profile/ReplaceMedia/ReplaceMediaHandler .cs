@@ -1,17 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MediatR;
 
-using MediatR;
+using Microsoft.Extensions.Logging;
 
 using Shared.Application.Contracts;
 using Shared.MinIO.Interfaces;
 
 using UserService.Application.DTO;
+using UserService.Application.Mapping;
+using UserService.Application.Validation;
 using UserService.Domain.IRepository;
-using UserService.Domain.Models;
 
 namespace UserService.Application.MediatR.ReplaceMedia
 {
@@ -19,69 +16,72 @@ namespace UserService.Application.MediatR.ReplaceMedia
     {
         private readonly IMediaRepository _mediaRepository;
         private readonly IMinioService _minio;
+        private readonly ILogger<ReplaceMediaHandler> _logger;
 
-        public ReplaceMediaHandler(IMediaRepository mediaRepository, IMinioService minio)
+        public ReplaceMediaHandler(
+            IMediaRepository mediaRepository,
+            IMinioService minio,
+            ILogger<ReplaceMediaHandler> logger)
         {
             _mediaRepository = mediaRepository;
             _minio = minio;
+            _logger = logger;
         }
 
-        public async Task<ApiResponse<MediaDto>> Handle(ReplaceMediaCommand request, CancellationToken cancellationToken)
+        public async Task<ApiResponse<MediaDto>> Handle(
+            ReplaceMediaCommand request,
+            CancellationToken cancellationToken)
         {
-            var media = await _mediaRepository.GetByIdAsync(request.MediaId);
+            var media = await _mediaRepository.GetByIdAsync(request.MediaId, cancellationToken);
 
             if (media is null || media.UserId != request.UserId)
+                return Fail("MEDIA_NOT_FOUND", "Медиа не найдено");
+
+            if (!MediaValidation.TryValidateUpload(
+                    request.File,
+                    request.MediaType,
+                    out var code,
+                    out var message))
             {
-                return new ApiResponse<MediaDto>
-                {
-                    Success = false,
-                    Error = new ApiError
-                    {
-                        Code = "MEDIA_NOT_FOUND",
-                        Message = "Media not found"
-                    }
-                };
+                return Fail(code, message);
             }
 
-            // delete old file
             await _minio.DeleteFileAsync(media.FileKey, media.Bucket);
 
-            // upload new file
-            var newFileKey = $"{Guid.NewGuid()}_{request.File.FileName}";
+            using var stream = request.File.OpenReadStream();
 
-            using (var stream = request.File.OpenReadStream())
-            {
-                await _minio.UploadFileAsync(
-                    stream,
-                    newFileKey,
-                    request.File.ContentType,
-                    media.Bucket
-                );
-            }
+            var upload = await _minio.UploadFileAsync(
+                stream,
+                request.File.FileName,
+                request.File.ContentType,
+                media.Bucket);
 
-            // update db
-            media.FileKey = newFileKey;
-            media.ContentType = request.File.ContentType;
+            media.FileKey = upload.FileKey;
+            media.ContentType = upload.ContentType;
             media.MediaType = request.MediaType;
+            media.OriginalName = upload.OriginalName;
+            media.Size = upload.Size;
+            media.CreatedAt = DateTime.UtcNow;
 
-            await _mediaRepository.UpdateAsync(media);
+            await _mediaRepository.UpdateAsync(media, cancellationToken);
 
-            // dto
-            var dto = new MediaDto
-            {
-                Id = media.Id,
-                FileKey = media.FileKey,
-                Bucket = media.Bucket,
-                MediaType = media.MediaType,
-                ContentType = media.ContentType,
-                Url = await _minio.GetFileUrlAsync(media.FileKey, media.Bucket)
-            };
+            _logger.LogInformation(
+                "Media {MediaId} replaced for user {UserId}",
+                media.Id,
+                request.UserId);
 
             return new ApiResponse<MediaDto>
             {
                 Success = true,
-                Data = dto
+                Data = await MediaMapper.ToDtoAsync(media, _minio, cancellationToken)
             };
         }
+
+        private static ApiResponse<MediaDto> Fail(string code, string message) =>
+            new()
+            {
+                Success = false,
+                Error = new ApiError { Code = code, Message = message }
+            };
     }
 }

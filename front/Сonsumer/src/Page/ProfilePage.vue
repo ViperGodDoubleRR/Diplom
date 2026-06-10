@@ -6,7 +6,14 @@
     <section class="profile-card">
 
       <div class="avatar-block">
-        <img class="avatar" :src="avatarUrl" @click="openGallery" />
+        <UserAvatar
+          avatar-class="avatar"
+          :name="userStore.user?.login"
+          :src="avatarPreview.url"
+          :is-video="avatarPreview.isVideo"
+          @click="openGallery"
+        />
+        <button class="avatar-upload" type="button" @click="openGallery">Медиа</button>
         <div class="online"></div>
       </div>
 
@@ -25,7 +32,7 @@
           </div>
 
           <div class="stat">
-            <span class="num">{{ postStore.totalPosts }}</span>
+            <span class="num">{{ postsCountLabel }}</span>
             <span class="label">Posts</span>
           </div>
 
@@ -65,42 +72,61 @@
       </button>
     </div>
 
-    <!-- GRID -->
-    <section class="grid">
-      <div v-for="post in posts" :key="post.id" class="post" @click="openPost(post)">
-        <div class="post-media">
-          <img v-if="post.mediaUrl" :src="post.mediaUrl" class="preview" />
-        </div>
-
-        <div class="post-info">
-          <div class="text">{{ post.description }}</div>
-
-          <div class="post-meta">
-            <span class="date">
-              {{ new Date(post.createdAt).toLocaleDateString() }}
-            </span>
-
-            <span class="likes">
-              ❤️ {{ post.likesCount }}
-            </span>
-          </div>
-        </div>
-      </div>
-    </section>
+    <ProfilePostGrid
+      :items="posts"
+      :loading="gridLoading"
+      :loading-more="postStore.loadingMore"
+      :has-more="gridHasMore"
+      :empty-text="emptyText"
+      :empty-icon="emptyIcon"
+      :show-author="activeTab !== 'posts'"
+      @open="openPost"
+      @load-more="loadMorePosts"
+    />
 
     <!-- MODALS -->
-    <ProfileModal v-model="isProfileOpen" :loading="false" :initial-data="{
+    <ProfileModal v-model="isProfileOpen" :loading="userStore.updateLoading" :initial-data="{
       name: userStore.user?.login || '',
       tag: userStore.user?.tag || '',
       description: userStore.user?.description || ''
     }" @save="handleProfileSave" />
 
-    <FriendsModal v-model="isFriendsOpen" :friends="friends" :blocked="blocked" :allUsers="allUsers" :page="page"
-      @add="handleAddFriend" @block="handleBlockUser" @removeFriend="handleRemoveFriend" @unblock="handleUnblockUser"
-      @search="handleSearch" @page="handlePage" />
+    <FriendsModal
+      v-model="isFriendsOpen"
+      :friends="friends"
+      :blocked="blocked"
+      :all-users="allUsers"
+      :page="page"
+      :has-more="directoryHasMore"
+      :loading="directoryLoading"
+      @add="handleAddFriend"
+      @block="handleBlockUser"
+      @remove-friend="handleRemoveFriend"
+      @unblock="handleUnblockUser"
+      @search="handleSearch"
+      @page="handlePage"
+      @rename="openRenameFriend"
+    />
 
-    <MediaGalleryModal v-model="isGalleryOpen" :media="mediaList" :start-index="galleryIndex" @upload="handleUpload"
-      @replace="handleReplace" @delete="handleDelete" @delete-all="handleDeleteAll" />
+    <RenameFriendModal
+      v-model="isRenameOpen"
+      :initial-login="renameTarget?.login"
+      :loading="renameLoading"
+      @save="handleRenameFriend"
+    />
+
+    <MediaGalleryModal
+      v-model="isGalleryOpen"
+      :media="mediaList"
+      :start-index="galleryIndex"
+      @upload="handleUpload"
+      @replace="handleReplace"
+      @delete="handleDelete"
+      @delete-all="handleDeleteAll"
+      @error="(msg) => showToast(msg, 'error')"
+    />
+
+    <p v-if="toastMessage" :class="['toast', toastType]">{{ toastMessage }}</p>
 
     <CreatePostModal v-model="isCreatePostOpen" :loading="createLoading" @submit="handleCreatePost" />
 
@@ -114,14 +140,22 @@ import ProfileModal from "@/components/profile/ProfileModal.vue";
 import FriendsModal from "@/components/profile/FriendsModal.vue";
 import MediaGalleryModal from "@/components/profile/MediaGalleryModal.vue";
 import CreatePostModal from "@/components/profile/CreatePostModal.vue";
+import RenameFriendModal from "@/components/profile/RenameFriendModal.vue";
+import UserAvatar from "@/components/ui/UserAvatar.vue";
+import ProfilePostGrid from "@/components/post/ProfilePostGrid.vue";
+import type { PostProfileCard } from "@/interface/models/post/PostProfileCard";
+import type { PostReactionCard } from "@/interface/models/post/PostReactionCard";
 
 import { useUserStore } from "@/store/userStore";
 import { useMediaStore } from "@/store/usermediaStore";
 import { useSocialStore } from "@/store/socialStore";
-import { usePostStore } from "@/store/postStore";
+import { usePostStore, PAGE_SIZE } from "@/store/postStore";
 import { useRouter } from "vue-router";
 import { MediaType } from "@/interface/models/profile/MediaType";
 import type { ProfileForm } from "@/interface/models/profile/ProfileForm";
+import { pickProfileMedia, sortProfileMediaChronological } from "@/utils/profileValidation";
+import { DIRECTORY_USERS_PAGE_SIZE } from "@/constants/socialConstants";
+import { PROFILE_ERROR_MESSAGES, SOCIAL_ERROR_MESSAGES, resolveMessage } from "@/utils/profileMessages";
 
 const userStore = useUserStore();
 const mediaStore = useMediaStore();
@@ -137,11 +171,46 @@ const isGalleryOpen = ref(false);
 const isCreatePostOpen = ref(false);
 const createLoading = ref(false);
 
+const isRenameOpen = ref(false);
+const renameLoading = ref(false);
+const renameTarget = ref<{ id: string; login: string } | null>(null);
+
+const toastMessage = ref("");
+const toastType = ref<"success" | "error">("success");
+
 const galleryIndex = ref(0);
 const page = ref(1);
+const directorySearch = ref("");
+
+watch(isFriendsOpen, (open) => {
+  if (open) return;
+
+  page.value = 1;
+  directorySearch.value = "";
+  socialStore.clearDirectoryUsers();
+});
+
+function showToast(text: string, type: "success" | "error" = "success") {
+  toastMessage.value = text;
+  toastType.value = type;
+  setTimeout(() => {
+    toastMessage.value = "";
+  }, 3500);
+}
 
 const activeTab = ref<"posts" | "liked" | "saved">("posts");
 
+const emptyText = computed(() => {
+  if (activeTab.value === "liked") return "Вы ещё не лайкнули посты";
+  if (activeTab.value === "saved") return "Сохранённых постов пока нет";
+  return "Создайте первый пост";
+});
+
+const emptyIcon = computed(() => {
+  if (activeTab.value === "liked") return "❤️";
+  if (activeTab.value === "saved") return "⭐";
+  return "📷";
+});
 
 const router = useRouter();
 // =====================
@@ -149,24 +218,21 @@ const router = useRouter();
 // =====================
 const friends = computed(() => socialStore.friends);
 const blocked = computed(() => socialStore.blocked);
-const allUsers = computed(() => socialStore.users);
+const allUsers = computed(() => socialStore.directoryUsers);
+const directoryLoading = computed(() => socialStore.directoryLoading);
+const directoryHasMore = computed(() => socialStore.directoryHasMore);
 
-const mediaList = computed(() => userStore.user?.media ?? []);
+const mediaList = computed(() => sortProfileMediaChronological(userStore.user?.media ?? []));
 
-const avatarUrl = computed(() => {
-  const avatar = mediaList.value.find(m => m.mediaType === MediaType.AVATAR);
-  return avatar?.url || "https://i.pravatar.cc/300";
-});
-function openPost(post: import("@/interface/models/post/PostReaction").PostReaction | import("@/interface/models/post/PostProfileCard").PostProfileCard) {
-
-  // МОИ ПОСТЫ
+const avatarPreview = computed(() => pickProfileMedia(userStore.user?.media));
+const avatarUrl = computed(() => avatarPreview.value.url);
+function openPost(post: PostProfileCard | PostReactionCard) {
   if (activeTab.value === "posts") {
-
     postStore.setCurrentUser({
       id: userStore.user?.id ?? "",
       login: userStore.user?.login ?? "",
       tag: userStore.user?.tag ?? "",
-      avatar: avatarUrl.value,
+      avatar: avatarUrl.value ?? "",
     });
 
     router.push({
@@ -180,14 +246,13 @@ function openPost(post: import("@/interface/models/post/PostReaction").PostReact
     return;
   }
 
-  // LIKED + SAVED
-  const reactionPost = post as import("@/interface/models/post/PostReactionCard").PostReactionCard;
+  const reactionPost = post as PostReactionCard;
 
   postStore.setCurrentUser({
     id: reactionPost.userId,
     login: reactionPost.userLogin,
     tag: reactionPost.userTag,
-    avatar: reactionPost.userAvatar,
+    avatar: reactionPost.userAvatar ?? "",
   });
 
   router.push({
@@ -214,14 +279,34 @@ const posts = computed(() => {
   }
 });
 
-// =====================
-// LOAD FAVORITES
-// =====================
-async function loadFavorites() {
-  await postStore.getFavoritePosts(1, 12);
-}
-async function loadLiked() {
-  await postStore.getLikedPosts(1, 12);
+const gridLoading = computed(() => postStore.loading && !posts.value.length);
+
+const gridHasMore = computed(() => {
+  if (activeTab.value === "liked") return postStore.likedHasMore;
+  if (activeTab.value === "saved") return postStore.favoriteHasMore;
+  return postStore.profileHasMore;
+});
+
+const postsCountLabel = computed(() =>
+  postStore.profileHasMore
+    ? `${postStore.profilePosts.length}+`
+    : String(postStore.profilePosts.length)
+);
+
+function loadMorePosts() {
+  if (!userStore.user?.id) return;
+
+  if (activeTab.value === "posts") {
+    void postStore.loadMoreProfilePosts(userStore.user.id);
+    return;
+  }
+
+  if (activeTab.value === "liked") {
+    void postStore.loadMoreLikedPosts();
+    return;
+  }
+
+  void postStore.loadMoreFavoritePosts();
 }
 // =====================
 // WATCH TAB
@@ -230,15 +315,18 @@ watch(activeTab, async (tab) => {
   if (!userStore.user?.id) return;
 
   if (tab === "posts") {
-    await postStore.getProfilePosts(userStore.user.id, 1, 12);
+    postStore.resetProfilePosts();
+    await postStore.getProfilePosts(userStore.user.id, 1, PAGE_SIZE);
   }
 
   if (tab === "liked") {
-    await loadLiked();
+    postStore.resetLikedPosts();
+    await postStore.getLikedPosts(1, PAGE_SIZE);
   }
 
   if (tab === "saved") {
-    await loadFavorites();
+    postStore.resetFavoritePosts();
+    await postStore.getFavoritePosts(1, PAGE_SIZE);
   }
 });
 
@@ -251,17 +339,15 @@ onMounted(async () => {
   await socialStore.getFriends();
   await socialStore.getBlocked();
 
-  await socialStore.searchUsers({
-    search: "",
-    page: 1,
-    pageSize: 20,
-  });
-
   if (userStore.user?.id) {
+    postStore.resetProfilePosts();
+    postStore.resetLikedPosts();
+    postStore.resetFavoritePosts();
+
     await Promise.all([
-      postStore.getProfilePosts(userStore.user.id, 1, 12),
-      loadLiked(),
-      loadFavorites(),
+      postStore.getProfilePosts(userStore.user.id, 1, PAGE_SIZE),
+      postStore.getLikedPosts(1, PAGE_SIZE),
+      postStore.getFavoritePosts(1, PAGE_SIZE),
     ]);
   }
 });
@@ -270,17 +356,28 @@ onMounted(async () => {
 // EXISTING LOGIC (НЕ ТРОГАЕМ)
 // =====================
 function openGallery() {
-  galleryIndex.value = 0;
+  galleryIndex.value = mediaList.value.length
+    ? mediaList.value.length - 1
+    : 0;
   isGalleryOpen.value = true;
 }
 
 async function handleProfileSave(data: ProfileForm) {
-  await userStore.updateProfile({
+  const res = await userStore.updateProfile({
     login: data.name,
-    tag: data.tag,
+    tag: data.tag || undefined,
     description: data.description,
   });
 
+  if (!res.success) {
+    showToast(
+      resolveMessage(PROFILE_ERROR_MESSAGES, res.error?.code, res.error?.message),
+      "error"
+    );
+    return;
+  }
+
+  showToast("Профиль обновлён");
   isProfileOpen.value = false;
 }
 
@@ -292,7 +389,10 @@ async function handleCreatePost(payload: { description: string; files: File[] })
       description: payload.description,
     });
 
-    if (!res.success || !res.data) return;
+    if (!res.success || !res.data) {
+      showToast("Не удалось создать пост", "error");
+      return;
+    }
 
     const postId = res.data.id;
 
@@ -305,175 +405,350 @@ async function handleCreatePost(payload: { description: string; files: File[] })
     }
 
     if (userStore.user?.id) {
-      await postStore.getProfilePosts(userStore.user.id, 1, 12);
+      postStore.resetProfilePosts();
+      await postStore.getProfilePosts(userStore.user.id, 1, PAGE_SIZE);
     }
 
     isCreatePostOpen.value = false;
+    showToast("Пост опубликован");
   } finally {
     createLoading.value = false;
   }
 }
 
-// SOCIAL + MEDIA (НЕ ТРОГАЕМ)
-async function handleUpload(file: File) {
-  await mediaStore.uploadMedia(file, MediaType.AVATAR);
-  await userStore.getMy();
+// SOCIAL + MEDIA
+async function handleUpload(payload: { file: File; mediaType: MediaType }) {
+  const res = await mediaStore.uploadMedia(payload.file, payload.mediaType);
+
+  if (!res.success) {
+    showToast(
+      resolveMessage(PROFILE_ERROR_MESSAGES, res.error?.code, res.error?.message),
+      "error"
+    );
+    return;
+  }
+
+  await userStore.refreshMedia();
+  showToast(
+    payload.mediaType === MediaType.VIDEO ? "Видео добавлено" : "Фото добавлено"
+  );
 }
 
-async function handleReplace(payload: any) {
-  await mediaStore.replaceCurrent(payload.id, payload.file, MediaType.AVATAR);
-  await userStore.getMy();
+async function handleReplace(payload: { id: number; file: File; mediaType: MediaType }) {
+  const res = await mediaStore.replaceCurrent(payload.id, payload.file, payload.mediaType);
+
+  if (!res.success) {
+    showToast(
+      resolveMessage(PROFILE_ERROR_MESSAGES, res.error?.code, res.error?.message),
+      "error"
+    );
+    return;
+  }
+
+  await userStore.refreshMedia();
+  showToast("Медиа заменено");
 }
 
 async function handleDelete(id: number) {
-  await mediaStore.deleteCurrent(id);
-  await userStore.getMy();
+  const res = await mediaStore.deleteCurrent(id);
+
+  if (!res.success) {
+    showToast(
+      resolveMessage(PROFILE_ERROR_MESSAGES, res.error?.code, res.error?.message),
+      "error"
+    );
+    return;
+  }
+
+  await userStore.refreshMedia();
+  showToast("Медиа удалено");
 }
 
 async function handleDeleteAll() {
-  await mediaStore.deleteAll();
-  await userStore.getMy();
+  const res = await mediaStore.deleteAll();
+
+  if (!res.success) {
+    showToast(
+      resolveMessage(PROFILE_ERROR_MESSAGES, res.error?.code, res.error?.message),
+      "error"
+    );
+    return;
+  }
+
+  await userStore.refreshMedia();
+  showToast("Все медиа удалены");
+}
+
+async function refreshDirectoryUsers() {
+  if (!isFriendsOpen.value) return;
+
+  await socialStore.searchDirectoryUsers({
+    search: directorySearch.value,
+    page: page.value,
+    pageSize: DIRECTORY_USERS_PAGE_SIZE,
+  });
 }
 
 async function handleAddFriend(id: string) {
-  await socialStore.addFriend(id);
+  const res = await socialStore.addFriend(id);
+
+  if (!res.success) {
+    showToast(resolveMessage(SOCIAL_ERROR_MESSAGES, res.error?.code, res.error?.message), "error");
+    return;
+  }
+
   await socialStore.getFriends();
+  await refreshDirectoryUsers();
+  showToast("Друг добавлен");
 }
 
 async function handleRemoveFriend(id: string) {
-  socialStore.friends = socialStore.friends.filter(f => f.id !== id);
+  const res = await socialStore.removeFriend(id);
+
+  if (!res.success) {
+    showToast(resolveMessage(SOCIAL_ERROR_MESSAGES, res.error?.code, res.error?.message), "error");
+    return;
+  }
+
+  showToast("Удалён из друзей");
 }
 
 async function handleBlockUser(id: string) {
-  await socialStore.blockUser(id);
-  socialStore.friends = socialStore.friends.filter(f => f.id !== id);
+  const res = await socialStore.blockUser(id);
+
+  if (!res.success) {
+    showToast(resolveMessage(SOCIAL_ERROR_MESSAGES, res.error?.code, res.error?.message), "error");
+    return;
+  }
+
   await socialStore.getBlocked();
+  await refreshDirectoryUsers();
+  showToast("Пользователь заблокирован");
 }
 
 async function handleUnblockUser(id: string) {
-  await socialStore.unblockUser(id);
-  socialStore.blocked = socialStore.blocked.filter(b => b.id !== id);
+  const res = await socialStore.unblockUser(id);
+
+  if (!res.success) {
+    showToast(resolveMessage(SOCIAL_ERROR_MESSAGES, res.error?.code, res.error?.message), "error");
+    return;
+  }
+
+  showToast("Пользователь разблокирован");
 }
 
-async function handleSearch(payload: any) {
-  page.value = payload.page;
+function openRenameFriend(userId: string) {
+  const friend = socialStore.friends.find((f) => f.id === userId);
+  if (!friend) return;
 
-  await socialStore.searchUsers({
+  renameTarget.value = {
+    id: friend.id,
+    login: friend.login,
+  };
+  isRenameOpen.value = true;
+}
+
+async function handleRenameFriend(login: string) {
+  if (!renameTarget.value) return;
+
+  renameLoading.value = true;
+
+  try {
+    const res = await socialStore.renameFriend(renameTarget.value.id, login);
+
+    if (!res.success) {
+      showToast(resolveMessage(SOCIAL_ERROR_MESSAGES, res.error?.code, res.error?.message), "error");
+      return;
+    }
+
+    showToast("Имя друга обновлено");
+    isRenameOpen.value = false;
+  } finally {
+    renameLoading.value = false;
+  }
+}
+
+async function handleSearch(payload: {
+  search: string;
+  tab: "friends" | "blocked" | "all";
+  page: number;
+}) {
+  if (payload.tab !== "all") return;
+
+  page.value = payload.page;
+  directorySearch.value = payload.search;
+
+  await socialStore.searchDirectoryUsers({
     search: payload.search,
     page: payload.page,
-    pageSize: 20,
+    pageSize: DIRECTORY_USERS_PAGE_SIZE,
   });
 }
 
-function handlePage(value: number) {
+async function handlePage(value: number) {
   page.value = value;
 
-  socialStore.searchUsers({
-    search: "",
+  await socialStore.searchDirectoryUsers({
+    search: directorySearch.value,
     page: value,
-    pageSize: 20,
+    pageSize: DIRECTORY_USERS_PAGE_SIZE,
   });
+
+  if (value > 1 && socialStore.directoryUsers.length === 0) {
+    page.value = value - 1;
+    socialStore.directoryHasMore = false;
+
+    await socialStore.searchDirectoryUsers({
+      search: directorySearch.value,
+      page: page.value,
+      pageSize: DIRECTORY_USERS_PAGE_SIZE,
+    });
+  }
 }
 </script>
 
 <style scoped>
 /* PAGE */
 .profile-page {
-  min-height: 100vh;
-  background: #0F0F0F;
-  padding: 40px;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding-bottom: 48px;
   color: white;
   position: relative;
-  overflow-x: hidden;
 }
 
 /* BACKGROUND GLOW */
 .bg {
   position: absolute;
-  top: -200px;
+  top: -120px;
   left: 50%;
   transform: translateX(-50%);
-  width: 700px;
-  height: 700px;
-  background: radial-gradient(circle, rgba(65, 99, 252, 0.18), transparent 60%);
+  width: min(640px, 90vw);
+  height: 640px;
+  background: radial-gradient(circle, rgba(65, 99, 252, 0.16), transparent 65%);
   filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* PROFILE CARD */
 .profile-card {
   position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 25px;
+  grid-template-columns: 132px 1fr;
+  gap: 28px;
 
-  padding: 25px;
-  border-radius: 22px;
+  padding: 28px;
+  border-radius: 24px;
 
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(12px);
-
-  max-width: 900px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
 }
 
 /* AVATAR */
 .avatar-block {
   position: relative;
-  width: 120px;
-  height: 120px;
+  width: 132px;
+  height: 132px;
+  flex-shrink: 0;
 }
 
-.avatar {
+.avatar-block :deep(.avatar),
+.avatar-block :deep(.user-avatar),
+.avatar-block :deep(.initials) {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid rgba(65, 99, 252, 0.6);
+  cursor: pointer;
+  border: 3px solid rgba(65, 99, 252, 0.55);
+  box-shadow: 0 8px 24px rgba(65, 99, 252, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.avatar-block:hover :deep(.avatar),
+.avatar-block:hover :deep(.user-avatar),
+.avatar-block:hover :deep(.initials) {
+  transform: scale(1.03);
+  box-shadow: 0 10px 28px rgba(65, 99, 252, 0.35);
+}
+
+.avatar-block :deep(.initials) {
+  font-size: 2rem;
 }
 
 .online {
   position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 12px;
-  height: 12px;
-  background: #3CFF78;
+  bottom: 10px;
+  right: 10px;
+  width: 14px;
+  height: 14px;
+  background: #3cff78;
   border-radius: 50%;
-  border: 2px solid #0F0F0F;
+  border: 2px solid #0f0f0f;
+  box-shadow: 0 0 8px rgba(60, 255, 120, 0.5);
+}
+
+.avatar-upload {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #4163fc, #5b7cff);
+  border: none;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(65, 99, 252, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.avatar-upload:hover {
+  transform: translateX(-50%) translateY(-1px);
+  box-shadow: 0 6px 18px rgba(65, 99, 252, 0.45);
 }
 
 /* INFO */
 .info-block {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
 }
 
-/* NAME */
 .name {
-  font-size: 26px;
+  font-size: clamp(22px, 3vw, 28px);
   margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .tag {
-  opacity: 0.6;
+  opacity: 0.55;
   font-size: 14px;
+  margin: 0;
 }
 
-/* BIO */
 .bio {
   font-size: 14px;
-  opacity: 0.8;
-  max-width: 500px;
+  line-height: 1.55;
+  opacity: 0.78;
+  max-width: 520px;
+  margin: 4px 0 0;
 }
 
 /* STATS */
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-
-  margin-top: 10px;
+  margin-top: 14px;
 }
 
 .stat {
@@ -481,163 +756,157 @@ function handlePage(value: number) {
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  padding: 12px 8px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
 
-  padding: 10px 0;
+.stat:first-child {
+  cursor: pointer;
+}
+
+.stat:first-child:hover {
+  background: rgba(65, 99, 252, 0.1);
+  border-color: rgba(65, 99, 252, 0.25);
 }
 
 .num {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
   line-height: 1;
 }
 
 .label {
-  font-size: 12px;
+  font-size: 11px;
   opacity: 0.5;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
 /* ACTIONS */
 .actions {
-  margin-top: 12px;
+  margin-top: 16px;
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
   align-items: center;
 }
 
-.edit-btn {
-  background: #4163FC;
+.edit-btn,
+.create-btn {
   border: none;
-  padding: 10px 14px;
+  padding: 10px 16px;
   border-radius: 12px;
-  color: white;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: 0.2s;
+  transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+}
+
+.edit-btn {
+  background: linear-gradient(135deg, #4163fc, #5b7cff);
+  color: white;
+  box-shadow: 0 4px 16px rgba(65, 99, 252, 0.3);
 }
 
 .edit-btn:hover {
-  opacity: 0.9;
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+.create-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.create-btn:hover {
+  background: rgba(65, 99, 252, 0.12);
+  border-color: rgba(65, 99, 252, 0.35);
+  color: white;
   transform: translateY(-1px);
 }
 
 /* TABS */
 .tabs {
-  margin-top: 20px;
-  display: flex;
-  gap: 15px;
+  position: relative;
+  z-index: 1;
+  margin-top: 28px;
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .tab {
   background: transparent;
   border: none;
-  color: white;
-  opacity: 0.5;
+  color: rgba(255, 255, 255, 0.55);
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.tab:hover {
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .tab.active {
-  opacity: 1;
-  border-bottom: 2px solid #4163FC;
+  color: white;
+  background: rgba(65, 99, 252, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(65, 99, 252, 0.35);
 }
 
-/* POSTS GRID */
-.grid {
-  margin-top: 25px;
-  max-width: 900px;
-
-  column-count: 3;
-  column-gap: 15px;
-}
-
-.post {
-  break-inside: avoid;
-  margin-bottom: 15px;
-
-  border-radius: 15px;
-  overflow: hidden;
-
-  background: rgba(255, 255, 255, 0.03);
-  cursor: pointer;
-
-  transition: 0.2s;
-}
-
-.post:hover {
-  transform: scale(1.03);
-}
-
-.post-media {
-  height: 180px;
-  background: #222;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.post-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  opacity: 0.6;
-  margin-top: 4px;
-}
-
-.likes {
-  color: #ff4d6d;
-}
-
-.preview {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.text {
-  font-size: 13px;
-  opacity: 0.9;
-}
-
-.date {
-  font-size: 11px;
-  opacity: 0.5;
-  margin-top: 4px;
-}
-
-.post-info {
-  padding: 10px;
-}
-
-.post-title {
-  font-size: 14px;
-}
-
-.post-meta {
-  font-size: 12px;
-  opacity: 0.5;
-}
-
-.create-btn {
-  background: rgba(65, 99, 252, 0.15);
-  border: 1px solid rgba(65, 99, 252, 0.4);
-  padding: 10px 14px;
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 16px;
   border-radius: 12px;
-  color: #a9b7ff;
-  cursor: pointer;
-  transition: 0.2s;
-
+  z-index: 1000;
   backdrop-filter: blur(8px);
 }
 
-.create-btn:hover {
-  background: rgba(65, 99, 252, 0.25);
-  border-color: rgba(65, 99, 252, 0.7);
-  color: white;
-  transform: translateY(-1px);
+.toast.success {
+  background: rgba(60, 255, 120, 0.15);
+  border: 1px solid rgba(60, 255, 120, 0.4);
 }
 
-.create-btn:active {
-  transform: translateY(0px);
+.toast.error {
+  background: rgba(255, 80, 80, 0.15);
+  border: 1px solid rgba(255, 80, 80, 0.4);
+}
+
+@media (max-width: 640px) {
+  .profile-card {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    padding: 22px 18px;
+  }
+
+  .info-block {
+    align-items: center;
+  }
+
+  .bio {
+    text-align: center;
+  }
+
+  .actions {
+    justify-content: center;
+  }
+
+  .tabs {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

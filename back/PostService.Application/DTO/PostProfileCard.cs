@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace PostService.Application.DTO
+﻿namespace PostService.Application.DTO
 {
     public class PostProfileCard
     {
@@ -15,7 +9,6 @@ namespace PostService.Application.DTO
         public string? MediaUrl { get; set; }
         public string? MediaType { get; set; }
 
-        // NEW
         public int LikesCount { get; set; }
     }
 }

@@ -57,10 +57,6 @@ export const useMediaStore = defineStore("media", {
     async replaceCurrent(mediaId: number, file: File, mediaType: MediaType) {
       this.loading = true;
       try {
-        const form = new FormData();
-        form.append("file", file);
-        form.append("mediaType", mediaType);
-
         return await service.replaceCurrentMedia(mediaId, file, mediaType);
       } finally {
         this.loading = false;

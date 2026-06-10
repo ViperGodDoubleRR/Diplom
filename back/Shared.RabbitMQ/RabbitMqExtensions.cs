@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System;
+
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 using RabbitMQ.Client;
 
@@ -15,13 +18,52 @@ namespace Shared.RabbitMQ
     {
         public static IServiceCollection AddRabbitMq(this IServiceCollection services)
         {
-            services.AddSingleton(new RabbitMqOptions
+            return services.AddRabbitMq(_ => { });
+        }
+
+        public static IServiceCollection AddRabbitMq(
+            this IServiceCollection services,
+            IConfiguration configuration)
+        {
+            return services.AddRabbitMq(options =>
+            {
+                options.HostName =
+                    configuration["RabbitMQ:Host"]
+                    ?? configuration["RabbitMq:HostName"]
+                    ?? "localhost";
+                options.UserName =
+                    configuration["RabbitMQ:UserName"]
+                    ?? configuration["RabbitMq:UserName"]
+                    ?? "guest";
+                options.Password =
+                    configuration["RabbitMQ:Password"]
+                    ?? configuration["RabbitMq:Password"]
+                    ?? "guest";
+
+                var portValue =
+                    configuration["RabbitMQ:Port"]
+                    ?? configuration["RabbitMq:Port"];
+
+                if (int.TryParse(portValue, out var port))
+                    options.Port = port;
+            });
+        }
+
+        public static IServiceCollection AddRabbitMq(
+            this IServiceCollection services,
+            Action<RabbitMqOptions> configure)
+        {
+            var options = new RabbitMqOptions
             {
                 HostName = "localhost",
                 UserName = "guest",
                 Password = "guest",
                 Port = 5672
-            });
+            };
+
+            configure(options);
+
+            services.AddSingleton(options);
 
             services.AddSingleton<RabbitMqConnection>(sp =>
             {

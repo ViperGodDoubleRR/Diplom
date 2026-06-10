@@ -9,6 +9,7 @@ namespace Shared.MinIO.Options
     public class MinioOptions
     {
         public string Endpoint { get; set; } = null!;
+        public string? PublicEndpoint { get; set; }
         public string AccessKey { get; set; } = null!;
         public string SecretKey { get; set; } = null!;
         public bool Secure { get; set; }

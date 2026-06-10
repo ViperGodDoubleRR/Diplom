@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using MediatR;
+﻿using MediatR;
 
 using PostService.Domain.IRepository;
 
@@ -12,8 +6,7 @@ using Shared.Application.Contracts;
 
 namespace PostService.Application.MediatR.FavoritePost
 {
-    public class FavoritePostHandler
-     : IRequestHandler<FavoritePostCommand, ApiResponse<bool>>
+    public class FavoritePostHandler : IRequestHandler<FavoritePostCommand, ApiResponse<bool>>
     {
         private readonly IPostRepository _repository;
 
@@ -26,16 +19,21 @@ namespace PostService.Application.MediatR.FavoritePost
             FavoritePostCommand request,
             CancellationToken cancellationToken)
         {
-            await _repository.FavoritePostAsync(
-                request.PostId,
-                request.UserId
-            );
-
-            return new ApiResponse<bool>
+            if (!await _repository.ExistsActiveAsync(request.PostId, cancellationToken))
             {
-                Success = true,
-                Data = true
-            };
+                return Fail("POST_NOT_FOUND", "Пост не найден");
+            }
+
+            await _repository.FavoritePostAsync(request.PostId, request.UserId, cancellationToken);
+
+            return new ApiResponse<bool> { Success = true, Data = true };
         }
+
+        private static ApiResponse<bool> Fail(string code, string message) =>
+            new()
+            {
+                Success = false,
+                Error = new ApiError { Code = code, Message = message }
+            };
     }
 }

@@ -2,18 +2,28 @@ import { api } from "@/api/apiUrl";
 import type { ApiResponse } from "@/interface/ApiContracts/ApiResponse";
 import type { AuthGo } from "@/interface/DTO/AuthGo";
 import type { AuthGoResponse } from "@/interface/DTO/AuthGoResponse";
+import { withApiCatch } from "@/utils/apiHelpers";
 
 export class AuthApi {
-  async requestCode(email: string): Promise<ApiResponse<string>> {
-    const res = await api.get("/auth/auth-request-code", {
-      params: { email },
-    });
-
-    return res.data;
+  requestCode(email: string): Promise<ApiResponse<string>> {
+    return withApiCatch(
+      () =>
+        api
+          .get<ApiResponse<string>>("/auth/auth-request-code", {
+            params: { email },
+          })
+          .then((res) => res.data),
+      "Не удалось отправить код на email"
+    );
   }
 
-  async authGo(data: AuthGo): Promise<ApiResponse<AuthGoResponse>> {
-    const res = await api.post("/auth/authorized-user", data);
-    return res.data;
+  authGo(data: AuthGo): Promise<ApiResponse<AuthGoResponse>> {
+    return withApiCatch(
+      () =>
+        api
+          .post<ApiResponse<AuthGoResponse>>("/auth/authorized-user", data)
+          .then((res) => res.data),
+      "Не удалось войти в аккаунт"
+    );
   }
 }

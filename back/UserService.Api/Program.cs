@@ -1,13 +1,11 @@
-
 using System.Text;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
-using Shared.Application.Interfaces;
-using Shared.Infrastructure.Email;
-using Shared.Infrastructure.Security;
+using Shared.MinIO.Constants;
 using Shared.MinIO.Extensions;
 using Shared.MinIO.Interfaces;
 using Shared.MinIO.Services;
@@ -19,51 +17,35 @@ using Shared.RabbitMQ.rpc.Abstraction;
 using Shared.RabbitMQ.rpc.Contracts.GetUserPost;
 
 using UserService.Application.Event.UserCreate;
-using UserService.Application.MediatR.SendEmail;
+using UserService.Application.Event.UserEmail;
+using UserService.Application.MediatR.UserCommand;
 using UserService.Application.RPC;
 using UserService.Domain.IRepository;
 using UserService.Infrastructure.Data;
 using UserService.Infrastructure.EfRepository;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddRabbitMq();
-builder.Services.AddScoped<UserRegisteredHandler>();
-builder.Services.AddScoped<IRPCHandle<GetUserRpcRequest, GetUserRpcResponse>,GetUserRpcHandler>();
 builder.Services.AddControllers();
-
-builder.Services.AddMinio(builder.Configuration);
-builder.Services.AddScoped<IMinioService, MinioService>();
-
-
-
-builder.Services.AddScoped<IUserRepository, EfUserRepository>();
-builder.Services.AddScoped<ISocialRepository, EfSocialRepository>();
-builder.Services.AddScoped<IMediaRepository, EfMediaRepository>();
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-//shared
-builder.Services.AddEmailSender(builder.Configuration);
-builder.Services.AddScoped<IHasher, Hasher>();
-builder.Services.AddScoped<ICodeGenerate, CodeGenerator>();
-builder.Services.AddDbContext<DbContextUser>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.WithOrigins(
+                builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
+                ?? ["http://localhost:5173"])
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
-builder.Services.AddMediatR(cfg =>
-    cfg.RegisterServicesFromAssembly(typeof(SendEmailCommandCode).Assembly));
 
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services.AddDbContext<DbContextUser>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -72,39 +54,99 @@ builder.Services
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!)
-            ),
-
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!)),
             ClockSkew = TimeSpan.Zero
         };
     });
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddMinio(builder.Configuration);
+builder.Services.AddScoped<IMinioService, MinioService>();
+
+builder.Services.AddScoped<IUserRepository, EfUserRepository>();
+builder.Services.AddScoped<ISocialRepository, EfSocialRepository>();
+builder.Services.AddScoped<IMediaRepository, EfMediaRepository>();
+
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(GetUserCommand).Assembly));
+
+builder.Services.AddRabbitMq(builder.Configuration);
+builder.Services.AddScoped<UserRegisteredHandler>();
+builder.Services.AddScoped<UserEmailUpdatedHandler>();
+builder.Services.AddScoped<IRPCHandle<GetUserRpcRequest, GetUserRpcResponse>, GetUserRpcHandler>();
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto;
+});
 
 var app = builder.Build();
-var bus = app.Services.GetRequiredService<IEventBus>();
-var rpcServer = app.Services.GetRequiredService<IRpcServer>();
-rpcServer.Start("user.rpc");
-bus.Subscribe<CreateUserEvent, UserRegisteredHandler>();
 
-await bus.InitAsync();
-await bus.StartConsumingAsync("user-service");
+try
+{
+    var rpcServer = app.Services.GetRequiredService<IRpcServer>();
+    var bus = app.Services.GetRequiredService<IEventBus>();
+
+    await rpcServer.StartAsync("user.rpc");
+    bus.Subscribe<CreateUserEvent, UserRegisteredHandler>();
+    bus.Subscribe<UpdateUserEmailEvent, UserEmailUpdatedHandler>();
+    await bus.InitAsync();
+    await bus.StartConsumingAsync("user-service");
+
+    app.Logger.LogInformation("RabbitMQ connected.");
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(
+        ex,
+        "RabbitMQ unavailable at startup. Start RabbitMQ or check appsettings. API will run without events/RPC.");
+}
+
+try
+{
+    using var scope = app.Services.CreateScope();
+    var minio = scope.ServiceProvider.GetRequiredService<IMinioService>();
+    await minio.EnsureBucketAsync(Buckets.UserAvatars);
+    await minio.EnsureBucketAsync(Buckets.UserGallery);
+    app.Logger.LogInformation("MinIO buckets ready.");
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(
+        ex,
+        "MinIO unavailable at startup. Start MinIO on localhost:9000 for media uploads.");
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-//app.UseHttpsRedirection();
-app.UseCors("AllowAll");
+app.UseForwardedHeaders();
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<DbContextUser>();
+        await db.Database.MigrateAsync();
+        app.Logger.LogInformation("UserDb migrations applied.");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "UserDb migration failed. Check SQL Server connection.");
+    }
+}
 
 app.Run();

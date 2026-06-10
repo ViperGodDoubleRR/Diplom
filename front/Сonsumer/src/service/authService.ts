@@ -6,11 +6,15 @@ import type { AuthGoResponse } from "@/interface/DTO/AuthGoResponse";
 export class AuthService {
   private api = new AuthApi();
 
-  async requestCode(email: string): Promise<ApiResponse<string>> {
-    return await this.api.requestCode(email);
+  requestCode(email: string): Promise<ApiResponse<string>> {
+    return this.api.requestCode(email.trim().toLowerCase());
   }
 
-  async authGo(data: AuthGo): Promise<ApiResponse<AuthGoResponse>> {
-    return await this.api.authGo(data);
+  authGo(data: AuthGo): Promise<ApiResponse<AuthGoResponse>> {
+    return this.api.authGo({
+      ...data,
+      email: data.email.trim().toLowerCase(),
+      code: data.code.trim().toUpperCase(),
+    });
   }
 }

@@ -1,21 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using MediatR;
+﻿using MediatR;
 
 using PostService.Application.DTO;
+using PostService.Application.Validation;
 using PostService.Domain.IRepository;
-using PostService.Domain.Models;
 
-using Shared.MinIO.Constants;
+using Shared.Application.Contracts;
 using Shared.MinIO.Interfaces;
 
 namespace PostService.Application.MediatR.UpdatePost
 {
-    public class UpdatePostCommandHandler : IRequestHandler<UpdatePostCommand, bool>
+    public class UpdatePostCommandHandler : IRequestHandler<UpdatePostCommand, ApiResponse<bool>>
     {
         private readonly IPostRepository _postRepository;
         private readonly IPostMediaRepository _mediaRepository;
@@ -31,20 +25,30 @@ namespace PostService.Application.MediatR.UpdatePost
             _minio = minio;
         }
 
-        public async Task<bool> Handle(UpdatePostCommand request, CancellationToken ct)
+        public async Task<ApiResponse<bool>> Handle(
+            UpdatePostCommand request,
+            CancellationToken cancellationToken)
         {
-            var post = await _postRepository.GetByIdAsync(request.PostId);
+            var post = await _postRepository.GetByIdAsync(request.PostId, cancellationToken);
 
-            if (post == null)
-                return false;
+            if (post is null || post.IsDeleted)
+                return Fail("POST_NOT_FOUND", "Пост не найден");
 
-            if (post.UserId.ToString() != request.UserId)
-                return false;
+            if (post.UserId != request.UserId)
+                return Fail("FORBIDDEN", "Нельзя редактировать чужой пост");
 
-            post.Description = request.Request.Description?.Trim() ?? "";
+            if (!PostValidation.TryValidateDescription(
+                    request.Request.Description,
+                    out var code,
+                    out var message))
+            {
+                return Fail(code, message);
+            }
 
-            var incoming = request.Request.Media ?? new List<PostMediaDto>();
-            var existing = await _mediaRepository.GetByPostIdAsync(post.Id);
+            post.Description = request.Request.Description.Trim();
+
+            var incoming = request.Request.Media ?? [];
+            var existing = await _mediaRepository.GetByPostIdAsync(post.Id, cancellationToken);
 
             var incomingIds = incoming
                 .Where(x => x.Id != Guid.Empty)
@@ -60,16 +64,25 @@ namespace PostService.Application.MediatR.UpdatePost
                 await _minio.DeleteFileAsync(media.FileKey, media.Bucket);
             }
 
-            _mediaRepository.DeleteRange(toDelete);
+            if (toDelete.Count > 0)
+            {
+                await _mediaRepository.DeleteRangeAsync(toDelete, cancellationToken);
+            }
 
+            await _postRepository.UpdateAsync(post, cancellationToken);
 
-            var toKeep = existing
-                .Where(x => incomingIds.Contains(x.Id))
-                .ToList();
-
-            await _postRepository.UpdateAsync(post);
-
-            return true;
+            return new ApiResponse<bool>
+            {
+                Success = true,
+                Data = true
+            };
         }
+
+        private static ApiResponse<bool> Fail(string code, string message) =>
+            new()
+            {
+                Success = false,
+                Error = new ApiError { Code = code, Message = message }
+            };
     }
 }

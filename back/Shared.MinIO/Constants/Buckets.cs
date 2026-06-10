@@ -12,6 +12,10 @@ namespace Shared.MinIO.Constants
         public const string UserGallery = "user-gallery";
         public const string PostImages = "post-images";
         public const string PostVideos = "post-videos";
+        public const string CommentImages = "comment-images";
+        public const string CommentVideos = "comment-videos";
+        public const string ChatImages = "chat-images";
+        public const string ChatVideos = "chat-videos";
     }
 }
 

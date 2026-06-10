@@ -1,80 +1,259 @@
-version: "3.9"
+name: neura
+
+x-dotnet-common: &dotnet-common
+  ASPNETCORE_ENVIRONMENT: Docker
+  ASPNETCORE_URLS: http://+:8080
+  SQL_HOST: sqlserver
+  SQL_PORT: "1433"
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PORT: "5672"
+  RabbitMQ__Host: rabbitmq
+  RabbitMQ__Port: "5672"
+  RabbitMQ__UserName: guest
+  RabbitMQ__Password: guest
+  Cors__Origins__0: http://localhost:8080
+  Cors__Origins__1: http://127.0.0.1:8080
+
+x-media-service-env: &media-service-env
+  <<: *dotnet-common
+  MINIO_HOST: minio
+  MINIO_PORT: "9000"
+  WAIT_MINIO: "true"
+  Minio__Endpoint: minio:9000
+  Minio__PublicEndpoint: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
+  Minio__AccessKey: ${MINIO_ROOT_USER:-minioadmin}
+  Minio__SecretKey: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+  Minio__Secure: "false"
 
 services:
+  # ---------- Infrastructure (starts first) ----------
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: sqlserver
+    container_name: neura-sqlserver
     environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrong!Passw0rd
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: ${SA_PASSWORD:-YourStrong!Passw0rd}
+      MSSQL_PID: Express
     ports:
       - "1433:1433"
     volumes:
       - sql_data:/var/opt/mssql
     networks:
       - neura-net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$SA_PASSWORD\" -C -Q \"SELECT 1\" > /dev/null 2>&1 || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$$SA_PASSWORD\" -C -Q \"SELECT 1\" > /dev/null 2>&1 || exit 1"
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
 
   rabbitmq:
     image: rabbitmq:3.13-management
-    container_name: rabbitmq
+    container_name: neura-rabbitmq
     ports:
-      - "5672:5672"     # AMQP
-      - "15672:15672"   # Web UI
+      - "5672:5672"
+      - "15672:15672"
     networks:
       - neura-net
-
-  redis:
-    image: redis:7
-    container_name: redis
-    ports:
-      - "6379:6379"
-    networks:
-      - neura-net
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
 
   minio:
-    image: minio/minio
-    container_name: minio
+    image: minio/minio:latest
+    container_name: neura-minio
     command: server /data --console-address ":9001"
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin123
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_API_CORS_ALLOW_ORIGIN: "http://localhost:8080,http://127.0.0.1:8080,http://localhost:9000,http://127.0.0.1:9000"
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # Web UI
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - minio_data:/data
     networks:
       - neura-net
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 sh -c 'cat < /dev/null > /dev/tcp/127.0.0.1/9000' 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
+  # ---------- Microservices (after infrastructure is healthy) ----------
   authservice:
     build:
       context: ./back
       dockerfile: AuthService.Api/Dockerfile
-    container_name: authservice
-    ports:
-      - "5001:8080"
+    image: neura-authservice:latest
+    container_name: neura-authservice
+    environment:
+      <<: *dotnet-common
+      WAIT_MINIO: "false"
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=AuthDb;TrustServerCertificate=True;Encrypt=False;User Id=sa;Password=${SA_PASSWORD:-YourStrong!Passw0rd}
     depends_on:
-      - sqlserver
-      - rabbitmq
-      - redis
-      - minio
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - neura-net
+    restart: unless-stopped
 
   regservice:
     build:
       context: ./back
       dockerfile: RegService.Api/Dockerfile
-    container_name: regservice
-    ports:
-      - "5002:8080"
+    image: neura-regservice:latest
+    container_name: neura-regservice
+    environment:
+      <<: *dotnet-common
+      WAIT_MINIO: "false"
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=RegDb;TrustServerCertificate=True;Encrypt=False;User Id=sa;Password=${SA_PASSWORD:-YourStrong!Passw0rd}
     depends_on:
-      - sqlserver
-      - rabbitmq
-      - redis
-      - minio
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - neura-net
+    restart: unless-stopped
+
+  userservice:
+    build:
+      context: ./back
+      dockerfile: UserService.Api/Dockerfile
+    image: neura-userservice:latest
+    container_name: neura-userservice
+    environment:
+      <<: *media-service-env
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=UserDb;TrustServerCertificate=True;Encrypt=False;User Id=sa;Password=${SA_PASSWORD:-YourStrong!Passw0rd}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - neura-net
+    restart: unless-stopped
+
+  postservice:
+    build:
+      context: ./back
+      dockerfile: PostService.Api/Dockerfile
+    image: neura-postservice:latest
+    container_name: neura-postservice
+    environment:
+      <<: *media-service-env
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=PostDb;TrustServerCertificate=True;Encrypt=False;User Id=sa;Password=${SA_PASSWORD:-YourStrong!Passw0rd}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - neura-net
+    restart: unless-stopped
+
+  commentservice:
+    build:
+      context: ./back
+      dockerfile: CommentService.Api/Dockerfile
+    image: neura-commentservice:latest
+    container_name: neura-commentservice
+    environment:
+      <<: *media-service-env
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=CommentDb;TrustServerCertificate=True;Encrypt=False;User Id=sa;Password=${SA_PASSWORD:-YourStrong!Passw0rd}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - neura-net
+    restart: unless-stopped
+
+  chatservice:
+    build:
+      context: ./back
+      dockerfile: ChatService.Api/Dockerfile
+    image: neura-chatservice:latest
+    container_name: neura-chatservice
+    environment:
+      <<: *media-service-env
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=ChatDb;TrustServerCertificate=True;Encrypt=False;User Id=sa;Password=${SA_PASSWORD:-YourStrong!Passw0rd}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - neura-net
+    restart: unless-stopped
+
+  # ---------- Gateway (after all microservices) ----------
+  apigateway:
+    build:
+      context: ./back
+      dockerfile: ApiGateway/Dockerfile
+    image: neura-apigateway:latest
+    container_name: neura-apigateway
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:8080
+    ports:
+      - "5107:8080"
+    depends_on:
+      authservice:
+        condition: service_started
+      regservice:
+        condition: service_started
+      userservice:
+        condition: service_started
+      postservice:
+        condition: service_started
+      commentservice:
+        condition: service_started
+      chatservice:
+        condition: service_started
+    networks:
+      - neura-net
+    restart: unless-stopped
+
+  # ---------- Frontend (after gateway) ----------
+  frontend:
+    build:
+      context: ./front/Сonsumer
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ""
+        VITE_ENABLE_CHAT_HUB: "true"
+    image: neura-frontend:latest
+    container_name: neura-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      apigateway:
+        condition: service_started
+    networks:
+      - neura-net
+    restart: unless-stopped
 
 networks:
   neura-net:

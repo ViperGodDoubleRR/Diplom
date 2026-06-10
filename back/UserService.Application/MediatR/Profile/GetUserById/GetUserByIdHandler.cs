@@ -1,22 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using MediatR;
+﻿using MediatR;
 
 using Shared.Application.Contracts;
 using Shared.MinIO.Interfaces;
 
 using UserService.Application.DTO;
+using UserService.Application.Mapping;
 using UserService.Domain.IRepository;
-using UserService.Domain.Models;
 
 namespace UserService.Application.MediatR.Profile.GetUserById
 {
-    public class GetUserByIdHandler
-    : IRequestHandler<GetUserByIdQuery, ApiResponse<UserViewDto>>
+    public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, ApiResponse<UserViewDto>>
     {
         private readonly IUserRepository _userRepository;
         private readonly IMediaRepository _mediaRepository;
@@ -36,9 +29,9 @@ namespace UserService.Application.MediatR.Profile.GetUserById
             GetUserByIdQuery request,
             CancellationToken cancellationToken)
         {
-            var user = await _userRepository.GetByIdAsync(request.UserId);
+            var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
 
-            if (user == null)
+            if (user is null)
             {
                 return new ApiResponse<UserViewDto>
                 {
@@ -51,27 +44,9 @@ namespace UserService.Application.MediatR.Profile.GetUserById
                 };
             }
 
-            // 🔥 1. Берём медиа пользователя
-            var media = await _mediaRepository.GetByUserIdAsync(user.Id);
+            var media = await _mediaRepository.GetByUserIdAsync(user.Id, cancellationToken);
+            var mediaDtos = await MediaMapper.ToDtoListAsync(media, _minio, cancellationToken);
 
-            var mediaDtos = new List<MediaDto>();
-
-            foreach (var m in media)
-            {
-                var url = await _minio.GetFileUrlAsync(m.FileKey, m.Bucket);
-
-                mediaDtos.Add(new MediaDto
-                {
-                    Id = m.Id,
-                    FileKey = m.FileKey,
-                    Bucket = m.Bucket,
-                    MediaType = m.MediaType,
-                    ContentType = m.ContentType,
-                    Url = url
-                });
-            }
-
-            // 🔥 2. Собираем DTO
             return new ApiResponse<UserViewDto>
             {
                 Success = true,

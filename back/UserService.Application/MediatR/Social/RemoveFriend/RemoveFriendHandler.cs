@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using MediatR;
+﻿using MediatR;
 
 using Shared.Application.Contracts;
 
@@ -12,15 +6,11 @@ using UserService.Domain.IRepository;
 
 namespace UserService.Application.MediatR.RemoveFriend
 {
-    public class RemoveFriendHandler
-        : IRequestHandler<
-            RemoveFriendCommand,
-            ApiResponse<bool>>
+    public class RemoveFriendHandler : IRequestHandler<RemoveFriendCommand, ApiResponse<bool>>
     {
         private readonly ISocialRepository _socialRepository;
 
-        public RemoveFriendHandler(
-            ISocialRepository socialRepository)
+        public RemoveFriendHandler(ISocialRepository socialRepository)
         {
             _socialRepository = socialRepository;
         }
@@ -29,10 +19,10 @@ namespace UserService.Application.MediatR.RemoveFriend
             RemoveFriendCommand request,
             CancellationToken cancellationToken)
         {
-            var friend =
-                await _socialRepository.GetFriendAsync(
-                    request.MyId,
-                    request.FriendId);
+            var friend = await _socialRepository.GetFriendAsync(
+                request.MyId,
+                request.FriendId,
+                cancellationToken);
 
             if (friend is null)
             {
@@ -42,18 +32,14 @@ namespace UserService.Application.MediatR.RemoveFriend
                     Error = new ApiError
                     {
                         Code = "FRIEND_NOT_FOUND",
-                        Message = "Friend not found"    
+                        Message = "Пользователь не найден в друзьях"
                     }
                 };
             }
 
-            await _socialRepository.RemoveFriendAsync(friend);
+            await _socialRepository.RemoveFriendAsync(friend, cancellationToken);
 
-            return new ApiResponse<bool>
-            {
-                Success = true,
-                Data = true
-            };
+            return new ApiResponse<bool> { Success = true, Data = true };
         }
     }
 }

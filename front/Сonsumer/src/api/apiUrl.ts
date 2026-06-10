@@ -1,23 +1,28 @@
 import axios from "axios";
 import type { ApiResponse } from "@/interface/ApiContracts/ApiResponse";
 import type { AuthGoResponse } from "@/interface/DTO/AuthGoResponse";
+import { getApiData, isApiSuccess, readAuthTokens } from "@/utils/apiHelpers";
+
+export function resolveApiBaseUrl(): string {
+  const fromEnv = import.meta.env.VITE_API_URL as string | undefined;
+
+  if (fromEnv !== undefined && fromEnv.trim() !== "") {
+    return fromEnv;
+  }
+
+  if (import.meta.env.PROD) {
+    return "";
+  }
+
+  return "http://localhost:5107";
+}
 
 export const api = axios.create({
-  baseURL: "http://localhost:5107",
+  baseURL: resolveApiBaseUrl(),
 });
 
-console.log("🚀 API INSTANCE CREATED");
-
-// ================= REQUEST =================
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
-
-  console.log("➡️ REQUEST:", {
-    url: config.url,
-    method: config.method,
-    token,
-    headers: config.headers,
-  });
 
   if (token && token !== "undefined" && token !== "null") {
     config.headers = config.headers ?? {};
@@ -27,94 +32,56 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ================= RESPONSE =================
 api.interceptors.response.use(
-  (res) => {
-    console.log("⬅️ RESPONSE SUCCESS:", {
-      url: res.config.url,
-      status: res.status,
-      data: res.data,
-    });
-
-    return res;
-  },
+  (res) => res,
   async (error) => {
     const originalRequest = error.config;
 
-    console.log("❌ RESPONSE ERROR:", {
-      url: originalRequest?.url,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
-
-    // если нет config — вообще не можем retry
     if (!originalRequest) {
       return Promise.reject(error);
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isMultipart =
+      typeof FormData !== "undefined" && originalRequest.data instanceof FormData;
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isMultipart) {
       originalRequest._retry = true;
 
-      console.log("🔄 REFRESH START");
-
       try {
-        console.log("STORAGE SNAPSHOT:", {
-  access: localStorage.getItem("accessToken"),
-  refresh: localStorage.getItem("refreshToken"),
-});
         const refreshToken = localStorage.getItem("refreshToken");
 
-        console.log("📦 refreshToken:", refreshToken);
-
-        if (!refreshToken || refreshToken === "undefined") {
-          console.log("❌ NO REFRESH TOKEN → logout");
-
+        if (!refreshToken || refreshToken === "undefined" || refreshToken === "null") {
           localStorage.removeItem("accessToken");
           localStorage.removeItem("refreshToken");
-
           return Promise.reject(error);
         }
 
+        const refreshBase = resolveApiBaseUrl();
         const refreshResponse = await axios.post<ApiResponse<AuthGoResponse>>(
-          "http://localhost:5107/auth/refresh",
+          `${refreshBase}/auth/refresh`,
           { refreshToken }
         );
 
-        console.log("🔁 REFRESH RESPONSE:", refreshResponse.data);
-
         const data = refreshResponse.data;
+        const tokens = readAuthTokens(getApiData(data));
 
-        if (!data.success || !data.data) {
-          console.log("❌ REFRESH INVALID");
-
+        if (!isApiSuccess(data) || !tokens) {
           localStorage.removeItem("accessToken");
           localStorage.removeItem("refreshToken");
-
           return Promise.reject(error);
         }
 
-        const newAccessToken = data.data.accessToken;
-        const newRefreshToken = data.data.refreshToken;
-
-        console.log("✅ NEW TOKENS:", {
-          access: newAccessToken,
-          refresh: newRefreshToken,
-        });
-
-        localStorage.setItem("accessToken", newAccessToken);
-        localStorage.setItem("refreshToken", newRefreshToken);
+        localStorage.setItem("accessToken", tokens.accessToken);
+        localStorage.setItem("refreshToken", tokens.refreshToken);
 
         originalRequest.headers = originalRequest.headers ?? {};
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
 
         return api.request(originalRequest);
-      } catch (e) {
-        console.log("💥 REFRESH FAILED:", e);
-
+      } catch {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
-
-        return Promise.reject(e);
+        return Promise.reject(error);
       }
     }
 

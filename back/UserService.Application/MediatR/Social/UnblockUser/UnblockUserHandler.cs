@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using MediatR;
+﻿using MediatR;
 
 using Shared.Application.Contracts;
 
@@ -12,15 +6,11 @@ using UserService.Domain.IRepository;
 
 namespace UserService.Application.MediatR.UnblockUser
 {
-    public class UnblockUserHandler
-        : IRequestHandler<
-            UnblockUserCommand,
-            ApiResponse<bool>>
+    public class UnblockUserHandler : IRequestHandler<UnblockUserCommand, ApiResponse<bool>>
     {
         private readonly ISocialRepository _socialRepository;
 
-        public UnblockUserHandler(
-            ISocialRepository socialRepository)
+        public UnblockUserHandler(ISocialRepository socialRepository)
         {
             _socialRepository = socialRepository;
         }
@@ -29,10 +19,10 @@ namespace UserService.Application.MediatR.UnblockUser
             UnblockUserCommand request,
             CancellationToken cancellationToken)
         {
-            var block =
-                await _socialRepository.GetBlockAsync(
-                    request.MyId,
-                    request.BlackId);
+            var block = await _socialRepository.GetBlockAsync(
+                request.MyId,
+                request.BlackId,
+                cancellationToken);
 
             if (block is null)
             {
@@ -42,18 +32,14 @@ namespace UserService.Application.MediatR.UnblockUser
                     Error = new ApiError
                     {
                         Code = "BLOCK_NOT_FOUND",
-                        Message = "Block not found"
+                        Message = "Пользователь не найден в чёрном списке"
                     }
                 };
             }
 
-            await _socialRepository.RemoveBlockAsync(block);
+            await _socialRepository.RemoveBlockAsync(block, cancellationToken);
 
-            return new ApiResponse<bool>
-            {
-                Success = true,
-                Data = true
-            };
+            return new ApiResponse<bool> { Success = true, Data = true };
         }
     }
 }

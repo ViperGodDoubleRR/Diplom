@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!--
+    Release output locks when a web host is still running (F5 without Stop, crashed debug session, etc.).
+    Stop the matching process right before MSBuild copies apphost/DLLs into bin\Debug.
+  -->
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT' and '$(UsingMicrosoftNETSdkWeb)' == 'true'">
+    <_NeuraHostProcessName Condition="'$(AssemblyName)' != ''">$(AssemblyName)</_NeuraHostProcessName>
+    <_NeuraHostProcessName Condition="'$(_NeuraHostProcessName)' == ''">$(MSBuildProjectName)</_NeuraHostProcessName>
+  </PropertyGroup>
+
+  <Target Name="StopRunningWebHostBeforeCopy"
+          BeforeTargets="CopyFilesToOutputDirectory"
+          Condition="'$(OS)' == 'Windows_NT'
+                    and '$(DesignTimeBuild)' != 'true'
+                    and '$(BuildingInsideVisualStudio)' != 'true'
+                    and '$(UsingMicrosoftNETSdkWeb)' == 'true'
+                    and '$(_NeuraHostProcessName)' != ''">
+    <Exec Command="powershell -NoProfile -NonInteractive -Command &quot;$names = @('$(_NeuraHostProcessName)'); foreach ($n in $names) { Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue }; Start-Sleep -Milliseconds 300&quot;"
+          IgnoreExitCode="true"
+          ConsoleToMSBuild="true" />
+  </Target>
+</Project>

@@ -1,0 +1,1 @@
+export const DIRECTORY_USERS_PAGE_SIZE = 10;

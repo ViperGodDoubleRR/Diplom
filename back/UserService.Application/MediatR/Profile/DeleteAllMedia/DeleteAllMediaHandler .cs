@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using MediatR;
+﻿using MediatR;
 
 using Shared.Application.Contracts;
 using Shared.MinIO.Interfaces;
@@ -24,17 +18,15 @@ namespace UserService.Application.MediatR.DeleteAllMedia
             _minio = minio;
         }
 
-        public async Task<ApiResponse<bool>> Handle(DeleteAllMediaCommand request, CancellationToken cancellationToken)
+        public async Task<ApiResponse<bool>> Handle(
+            DeleteAllMediaCommand request,
+            CancellationToken cancellationToken)
         {
-            var mediaList = await _mediaRepository.GetByUserIdAsync(request.UserId);
+            var mediaList = await _mediaRepository.GetByUserIdAsync(request.UserId, cancellationToken);
 
-            if (mediaList == null || mediaList.Count == 0)
+            if (mediaList.Count == 0)
             {
-                return new ApiResponse<bool>
-                {
-                    Success = true,
-                    Data = true
-                };
+                return new ApiResponse<bool> { Success = true, Data = true };
             }
 
             foreach (var media in mediaList)
@@ -42,17 +34,9 @@ namespace UserService.Application.MediatR.DeleteAllMedia
                 await _minio.DeleteFileAsync(media.FileKey, media.Bucket);
             }
 
-            // delete from DB
-            foreach (var media in mediaList)
-            {
-                await _mediaRepository.DeleteAsync(media);
-            }
+            await _mediaRepository.DeleteRangeAsync(mediaList, cancellationToken);
 
-            return new ApiResponse<bool>
-            {
-                Success = true,
-                Data = true
-            };
+            return new ApiResponse<bool> { Success = true, Data = true };
         }
     }
 }

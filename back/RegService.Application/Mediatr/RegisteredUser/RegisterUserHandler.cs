@@ -1,10 +1,11 @@
-﻿
-using MediatR;
+﻿using MediatR;
+
+using Microsoft.Extensions.Logging;
+
 using RegService.Domain.IRepository;
-using RegService.Domain.Models;
 
 using Shared.Application.Contracts;
-using Shared.Application.Interfaces;
+using Shared.Application.Validation;
 using Shared.RabbitMQ.EventBus.Abstractions;
 using Shared.RabbitMQ.EventBus.Events.User;
 using Shared.RabbitMQ.rpc.Abstraction;
@@ -15,36 +16,91 @@ namespace RegService.Application.Mediatr.RegisteredUser
     public class RegisterUserHandler : IRequestHandler<RegisterUserCommand, ApiResponse<string>>
     {
         private readonly IRegRepository _regRepository;
-        private readonly IHasher _hasher;
-        private readonly IRpcClient _rpcclient;
+        private readonly IRpcClient _rpcClient;
         private readonly IEventBus _eventBus;
-        public RegisterUserHandler(IRegRepository repository, IHasher hasher, IRpcClient rpcclient, IEventBus eventBus)
+        private readonly ILogger<RegisterUserHandler> _logger;
+
+        public RegisterUserHandler(
+            IRegRepository repository,
+            IRpcClient rpcClient,
+            IEventBus eventBus,
+            ILogger<RegisterUserHandler> logger)
         {
             _regRepository = repository;
-            _hasher = hasher;
-            _rpcclient=rpcclient;
+            _rpcClient = rpcClient;
             _eventBus = eventBus;
+            _logger = logger;
         }
-        public async Task<ApiResponse<string>> Handle(RegisterUserCommand command, CancellationToken cancellationToken)
+
+        public async Task<ApiResponse<string>> Handle(
+            RegisterUserCommand command,
+            CancellationToken cancellationToken)
         {
-            var call = new CreateUserRpcRequest
+            if (!InputValidator.IsValidEmail(command.Email))
             {
-                Email = command.Email,
-                Password = command.Password,
-                Login = command.Login
-            };
+                return Fail("INVALID_EMAIL", "Некорректный email");
+            }
 
-            var response = await _rpcclient.CallAsync<CreateUserRpcRequest, CreateUserRpcResponse>(
-                "auth.rpc",
-                call);
+            if (!InputValidator.IsValidLogin(command.Login, out var loginError))
+            {
+                return Fail("INVALID_LOGIN", loginError!);
+            }
 
-            await _regRepository.RegisterUser(
+            if (!InputValidator.IsValidPassword(command.Password, out var passwordError))
+            {
+                return Fail("INVALID_PASSWORD", passwordError!);
+            }
+
+            var email = InputValidator.NormalizeEmail(command.Email);
+            var login = command.Login.Trim();
+
+            if (!await _regRepository.IsEmailConfirmed(email, cancellationToken))
+            {
+                return Fail("EMAIL_NOT_CONFIRMED", "Сначала подтвердите email кодом");
+            }
+
+            CreateUserRpcResponse response;
+
+            try
+            {
+                response = await _rpcClient.CallAsync<CreateUserRpcRequest, CreateUserRpcResponse>(
+                    "auth.rpc",
+                    new CreateUserRpcRequest
+                    {
+                        Email = email,
+                        Password = command.Password,
+                        Login = login
+                    });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Auth RPC failed for {Email}", email);
+                return Fail("AUTH_SERVICE_UNAVAILABLE", "Сервис авторизации недоступен");
+            }
+
+            if (!response.Success)
+            {
+                return Fail(
+                    response.ErrorCode ?? "CREATE_USER_FAILED",
+                    response.ErrorMessage ?? "Не удалось создать пользователя");
+            }
+
+            var registered = await _regRepository.RegisterUser(
                 response.Id,
                 response.Email,
                 response.Login,
                 cancellationToken);
 
-            // 🔥 ПУБЛИКАЦИЯ EVENT
+            if (!registered)
+            {
+                _logger.LogWarning(
+                    "RegDb save failed after Auth user created: {UserId} {Email}",
+                    response.Id,
+                    response.Email);
+
+                return Fail("REGISTRATION_FAILED", "Не удалось завершить регистрацию");
+            }
+
             await _eventBus.Publish(new CreateUserEvent
             {
                 id = response.Id,
@@ -55,8 +111,15 @@ namespace RegService.Application.Mediatr.RegisteredUser
             return new ApiResponse<string>
             {
                 Success = true,
-                Data = "Пользователь зарегистрирован"
+                Data = "REGISTRATION_COMPLETE"
             };
         }
+
+        private static ApiResponse<string> Fail(string code, string message) =>
+            new()
+            {
+                Success = false,
+                Error = new ApiError { Code = code, Message = message }
+            };
     }
 }

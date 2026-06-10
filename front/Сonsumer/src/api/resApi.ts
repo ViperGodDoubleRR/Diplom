@@ -1,43 +1,50 @@
 import { api } from "@/api/apiUrl";
 import type { ApiResponse } from "@/interface/ApiContracts/ApiResponse";
+import type { ChangePasswordRequest } from "@/interface/DTO/ChangePasswordRequest";
+import { withApiCatch } from "@/utils/apiHelpers";
 
 export class ResApi {
-  async requestCode(email: string): Promise<ApiResponse<string>> {
-    const response = await api.get<ApiResponse<string>>(
-      "/auth/res-request-code",
-      {
-        params: { email },
-      }
+  requestCode(email: string): Promise<ApiResponse<string>> {
+    return withApiCatch(
+      () =>
+        api
+          .get<ApiResponse<string>>("/auth/res-request-code", {
+            params: { email },
+          })
+          .then((res) => res.data),
+      "Не удалось отправить код для сброса пароля"
     );
-
-    return response.data;
   }
 
-  async checkCode(email: string, code: string): Promise<ApiResponse<string>> {
-    const response = await api.get<ApiResponse<string>>(
-      "/auth/res-check-code",
-      {
-        params: { email, code },
-      }
+  checkCode(email: string, code: string): Promise<ApiResponse<string>> {
+    return withApiCatch(
+      () =>
+        api
+          .get<ApiResponse<string>>("/auth/res-check-code", {
+            params: { email, code },
+          })
+          .then((res) => res.data),
+      "Не удалось проверить код"
     );
-
-    return response.data;
   }
 
-  async changePassword(
+  changePassword(
     email: string,
-    password: string
+    password: string,
+    resetToken: string
   ): Promise<ApiResponse<string>> {
-    console.log("CHANGE PASSWORD:", { email, password });
+    const body: ChangePasswordRequest = {
+      email,
+      password,
+      resetToken,
+    };
 
-    const response = await api.post<ApiResponse<string>>(
-      "/auth/res-change-password",
-      {
-        email,
-        password,
-      }
+    return withApiCatch(
+      () =>
+        api
+          .post<ApiResponse<string>>("/auth/res-change-password", body)
+          .then((res) => res.data),
+      "Не удалось сменить пароль"
     );
-
-    return response.data;
   }
 }

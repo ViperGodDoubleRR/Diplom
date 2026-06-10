@@ -9,6 +9,13 @@ import ProfilePage from '@/Page/ProfilePage.vue'
 import ViewProfilePage from '@/Page/ViewProfilePage.vue'
 import FeedPage from '@/Page/FeedPage.vue'
 import MessagesPage from '@/Page/MessagesPage.vue'
+import SettingsPage from '@/Page/SettingsPage.vue'
+import {
+  clearAuthTokens,
+  hasRefreshToken,
+  isAuthOnlyRoute,
+  isPublicRoute,
+} from '@/utils/authGuard'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -44,23 +51,50 @@ const router = createRouter({
           component: ProfilePage
         },
         {
-        path: 'profile/:id',
-        name: 'profile-view',
-        component: ViewProfilePage
+          path: 'profile/:id',
+          name: 'profile-view',
+          component: ViewProfilePage
         },
         {
-         path: 'feed/:userId?/:postId?',
-         name: 'feed',
-         component: FeedPage,
-         props: true
+          path: 'feed',
+          name: 'feed-home',
+          component: FeedPage
         },
         {
-        path: "/messages",
-        component: MessagesPage
+          path: 'feed/:userId/:postId?',
+          name: 'feed',
+          component: FeedPage
+        },
+        {
+          path: 'messages',
+          name: 'messages',
+          component: MessagesPage
+        },
+        {
+          path: 'settings',
+          name: 'settings',
+          component: SettingsPage
         }
       ]
     }
   ]
+})
+
+router.beforeEach((to) => {
+  if (isAuthOnlyRoute(to.path) && hasRefreshToken()) {
+    return { path: '/profile' }
+  }
+
+  if (isPublicRoute(to.path)) {
+    return true
+  }
+
+  if (!hasRefreshToken()) {
+    clearAuthTokens()
+    return { path: '/auth' }
+  }
+
+  return true
 })
 
 export default router

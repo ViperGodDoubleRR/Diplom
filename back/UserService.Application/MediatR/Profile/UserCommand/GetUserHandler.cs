@@ -1,53 +1,55 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using MediatR;
 
-using MediatR;
+using Microsoft.Extensions.Logging;
 
 using Shared.Application.Contracts;
-using Shared.Application.Interfaces;
 
+using UserService.Application.DTO;
+using UserService.Application.Mapping;
 using UserService.Domain.IRepository;
-using UserService.Domain.Models;
+
 namespace UserService.Application.MediatR.UserCommand
 {
     public class GetUserHandler
-    : IRequestHandler<GetUserCommand, ApiResponse<User>>
+        : IRequestHandler<GetUserCommand, ApiResponse<UserProfileDto>>
     {
         private readonly IUserRepository _userRepository;
+        private readonly ILogger<GetUserHandler> _logger;
 
-        public GetUserHandler(IUserRepository userRepository)
+        public GetUserHandler(
+            IUserRepository userRepository,
+            ILogger<GetUserHandler> logger)
         {
             _userRepository = userRepository;
+            _logger = logger;
         }
 
-        public async Task<ApiResponse<User>> Handle(GetUserCommand command,CancellationToken cancellationToken)
+        public async Task<ApiResponse<UserProfileDto>> Handle(
+            GetUserCommand command,
+            CancellationToken cancellationToken)
         {
-            var apiResponse = new ApiResponse<User>();
-
-            var user =
-                await _userRepository.GetByIdAsync(command.UserId);
+            var user = await _userRepository.GetByIdAsync(command.UserId, cancellationToken);
 
             if (user is null)
             {
-                apiResponse.Success = false;
+                _logger.LogWarning("Profile not found for user {UserId}", command.UserId);
 
-                apiResponse.Error = new ApiError
+                return new ApiResponse<UserProfileDto>
                 {
-                    Code = "USER_NOT_FOUND",
-                    Message = "Пользователь не найден"
+                    Success = false,
+                    Error = new ApiError
+                    {
+                        Code = "USER_NOT_FOUND",
+                        Message = "Пользователь не найден"
+                    }
                 };
-
-                return apiResponse;
             }
 
-            apiResponse.Success = true;
-            apiResponse.Data = user;
-
-            return apiResponse;
+            return new ApiResponse<UserProfileDto>
+            {
+                Success = true,
+                Data = UserProfileMapper.ToProfileDto(user)
+            };
         }
     }
 }

@@ -1,28 +1,18 @@
 ﻿
-//{====================================================================}
-//{ Модуль UserController.cs}
-//{ гр.П41 }
-//{ Разработчик: Куприянович А.П }
-//{ Модифицирован: 27.05.2026 }
-//{ --------------------------------------------------------------------}
-//{модуль для управления данными пользователя
-//{ ********************************************************************}  
 using System.Security.Claims;
 
 using MediatR;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 
 using Shared.Application.Contracts;
-using Shared.RabbitMQ.rpc.Abstraction;
 
 using UserService.Application.DTO;
 using UserService.Application.MediatR.Profile.GetUserById;
 using UserService.Application.MediatR.UpdateUser;
 using UserService.Application.MediatR.UserCommand;
-using UserService.Domain.Models;
+using UserService.Api.Extensions;
 
 namespace UserService.Api.Controllers
 {
@@ -31,67 +21,46 @@ namespace UserService.Api.Controllers
     public class UserController : ControllerBase
     {
         private readonly IMediator _mediator;
-        private readonly ILogger<UserController> _logger;
-        public UserController(IMediator mediator, ILogger<UserController> logger)
+
+        public UserController(IMediator mediator)
         {
             _mediator = mediator;
-            _logger = logger;
         }
+
         [Authorize]
         [HttpGet("get-user")]
         public async Task<IActionResult> GetUser()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim is null)
-            {
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
-            }
 
-            Guid userId = Guid.Parse(userIdClaim.Value);
-            var command = new GetUserCommand
-            {
-                UserId = userId
-            };
-
-            ApiResponse<User> response = await _mediator.Send(command);
-
+            var response = await _mediator.Send(new GetUserCommand { UserId = userId.Value });
             return Ok(response);
         }
+
         [Authorize]
         [HttpPut("update")]
         public async Task<IActionResult> UpdateUser([FromBody] UpdateUserDto dto)
         {
-            var userIdClaim =
-                User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim is null)
-            {
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
-            }
 
-            Guid userId = Guid.Parse(userIdClaim.Value);
-
-            var command = new UpdateUserCommand
+            var response = await _mediator.Send(new UpdateUserCommand
             {
-                UserId = userId,
+                UserId = userId.Value,
                 Dto = dto
-            };
-
-            var response = await _mediator.Send(command);
+            });
 
             return Ok(response);
         }
-        [HttpGet("{id}")]
+
+        [AllowAnonymous]
+        [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetUserById(Guid id)
         {
-            var query = new GetUserByIdQuery
-            {
-                UserId = id
-            };
-
-            var response = await _mediator.Send(query);
-
+            var response = await _mediator.Send(new GetUserByIdQuery { UserId = id });
             return Ok(response);
         }
     }

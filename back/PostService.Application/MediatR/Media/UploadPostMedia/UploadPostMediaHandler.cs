@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using MediatR;
-
-using Minio.DataModel;
+﻿using MediatR;
 
 using PostService.Application.DTO;
+using PostService.Application.Mapping;
+using PostService.Application.Validation;
 using PostService.Domain.IRepository;
 using PostService.Domain.Models;
 
@@ -39,110 +33,62 @@ namespace PostService.Application.MediatR.Media.UploadPostMedia
             UploadPostMediaCommand request,
             CancellationToken cancellationToken)
         {
-            var post = await _postRepository.GetByIdAsync(request.PostId);
+            var post = await _postRepository.GetByIdAsync(request.PostId, cancellationToken);
 
-            if (post is null)
-            {
-                return Error("POST_NOT_FOUND", "Post not found");
-            }
+            if (post is null || post.IsDeleted)
+                return Fail("POST_NOT_FOUND", "Пост не найден");
 
-       
             if (post.UserId != request.UserId)
+                return Fail("FORBIDDEN", "Нельзя загружать медиа в чужой пост");
+
+            if (!PostValidation.TryValidateMediaUpload(
+                    request.File,
+                    request.MediaType,
+                    out var code,
+                    out var message))
             {
-                return Error("FORBIDDEN", "You can't upload media to this post");
+                return Fail(code, message);
             }
 
-            if (request.File.Length == 0)
-                return Error("EMPTY_FILE", "File is empty");
-
-            const long maxSize = 10 * 1024 * 1024;
-
-            if (request.File.Length > maxSize)
-                return Error("FILE_TOO_LARGE", "File too large");
-
-            var allowedTypes = new[]
-            {
-                "image/jpeg",
-                "image/png",
-                "image/webp",
-                "video/mp4"
-            };
-
-            if (!allowedTypes.Contains(request.File.ContentType))
-                return Error("INVALID_FILE_TYPE", "Invalid file type");
-
-            var allowedMedia = new[] { "image", "video" };
-
-            if (!allowedMedia.Contains(request.MediaType))
-                return Error("INVALID_MEDIA_TYPE", "Invalid media type");
-
-            var bucket = request.MediaType switch
-            {
-                "image" => Buckets.PostImages,
-                "video" => Buckets.PostVideos,
-                _ => Buckets.PostImages
-            };
-
-            var fileKey = Guid.NewGuid().ToString();
+            var bucket = request.MediaType.Equals("video", StringComparison.OrdinalIgnoreCase)
+                ? Buckets.PostVideos
+                : Buckets.PostImages;
 
             using var stream = request.File.OpenReadStream();
 
             var upload = await _minio.UploadFileAsync(
                 stream,
-                fileKey,
+                request.File.FileName,
                 request.File.ContentType,
-                bucket
-            );
+                bucket);
 
             var media = new PostMedia
             {
                 Id = Guid.NewGuid(),
                 PostId = post.Id,
-
                 Bucket = upload.Bucket,
                 FileKey = upload.FileKey,
-
                 OriginalName = request.File.FileName,
                 ContentType = upload.ContentType,
                 Size = upload.Size,
-
                 MediaType = request.MediaType,
                 CreatedAt = DateTime.UtcNow
             };
 
-            await _mediaRepository.AddAsync(media);
-
-            var url = await _minio.GetFileUrlAsync(
-                media.FileKey,
-                media.Bucket
-            );
+            await _mediaRepository.AddAsync(media, cancellationToken);
 
             return new ApiResponse<PostMediaDto>
             {
                 Success = true,
-                Data = new PostMediaDto
-                {
-                    Id = media.Id,
-                    FileKey = media.FileKey,
-                    Bucket = media.Bucket,
-                    MediaType = media.MediaType,
-                    Url = url
-                }
+                Data = await PostMapper.ToDtoAsync(media, _minio, cancellationToken)
             };
         }
 
-        private ApiResponse<PostMediaDto> Error(string code, string message)
-        {
-            return new ApiResponse<PostMediaDto>
+        private static ApiResponse<PostMediaDto> Fail(string code, string message) =>
+            new()
             {
                 Success = false,
-                Error = new ApiError
-                {
-                    Code = code,
-                    Message = message
-                }
+                Error = new ApiError { Code = code, Message = message }
             };
-
-        }
     }
 }

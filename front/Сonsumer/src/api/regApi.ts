@@ -1,30 +1,47 @@
 import { api } from "@/api/apiUrl";
 import type { ApiResponse } from "@/interface/ApiContracts/ApiResponse";
+import { withApiCatch } from "@/utils/apiHelpers";
 
 export class RegApi {
-  async sendEmail(email: string): Promise<ApiResponse<string>> {
-    const res = await api.get("/reg/send-email-code", {
-      params: { email },
-    });
-
-    return res.data;
+  sendEmail(email: string): Promise<ApiResponse<string>> {
+    return withApiCatch(
+      () =>
+        api
+          .get<ApiResponse<string>>("/reg/send-email-code", {
+            params: { email },
+          })
+          .then((res) => res.data),
+      "Не удалось отправить код на email"
+    );
   }
 
-  async checkCode(email: string, code: string): Promise<ApiResponse<string>> {
-    const res = await api.get("/reg/check-code", {
-      params: { email, code },
-    });
-
-    return res.data;
+  checkCode(email: string, code: string): Promise<ApiResponse<string>> {
+    return withApiCatch(
+      () =>
+        api
+          .get<ApiResponse<string>>("/reg/check-code", {
+            params: { email, code },
+          })
+          .then((res) => res.data),
+      "Не удалось проверить код"
+    );
   }
 
-  async registerUser(email: string, login: string, password: string) {
-    const res = await api.post("/reg/register-user", {
-      email,
-      login,
-      password,
-    });
-
-    return res.data;
+  registerUser(
+    email: string,
+    login: string,
+    password: string
+  ): Promise<ApiResponse<string>> {
+    return withApiCatch(
+      () =>
+        api
+          .post<ApiResponse<string>>("/reg/register-user", {
+            email,
+            login,
+            password,
+          })
+          .then((res) => res.data),
+      "Не удалось зарегистрироваться"
+    );
   }
 }

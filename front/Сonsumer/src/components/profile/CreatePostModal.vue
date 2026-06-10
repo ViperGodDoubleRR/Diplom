@@ -1,5 +1,6 @@
 <template>
-  <div v-if="modelValue" class="overlay" @click.self="close">
+  <Teleport to="body">
+    <div v-if="modelValue" class="overlay" @click.self="close">
     <div class="modal">
 
       <!-- HEADER -->
@@ -13,38 +14,54 @@
 
       <!-- UPLOAD ZONE -->
       <label class="upload">
-        <input type="file" multiple hidden @change="handleFiles" />
+        <input
+          type="file"
+          multiple
+          hidden
+          accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+          @change="handleFiles"
+        />
         <div class="upload-box">
           <span>📎 Add photos / videos</span>
-          <small>Click or drop files here</small>
+          <small>Фото до {{ MAX_POST_IMAGE_MB }} МБ, видео до {{ MAX_POST_VIDEO_MB }} МБ</small>
         </div>
       </label>
+
+      <p v-if="fileError" class="error">{{ fileError }}</p>
 
       <!-- FILE LIST -->
       <div v-if="files.length" class="files">
         <div v-for="(file, i) in files" :key="i" class="file">
-          <span>📄 {{ file.name }}</span>
-          <button @click="removeFile(i)">✕</button>
+          <span>{{ fileLabel(file) }} {{ file.name }}</span>
+          <button type="button" @click="removeFile(i)">✕</button>
         </div>
       </div>
 
       <!-- ACTIONS -->
       <div class="actions">
-        <button class="btn ghost" @click="close">
+        <button class="btn ghost" type="button" @click="close">
           Cancel
         </button>
 
-        <button class="btn primary" :disabled="loading" @click="submit">
+        <button class="btn primary" :disabled="loading" type="button" @click="submit">
           {{ loading ? "Posting..." : "Create Post" }}
         </button>
       </div>
 
     </div>
-  </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
+
+import {
+  MAX_POST_IMAGE_MB,
+  MAX_POST_VIDEO_MB,
+  resolvePostMediaType,
+  validatePostMediaFile,
+} from "@/utils/postMediaValidation";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -58,6 +75,7 @@ const emit = defineEmits<{
 
 const description = ref("");
 const files = ref<File[]>([]);
+const fileError = ref("");
 
 watch(
   () => props.modelValue,
@@ -65,14 +83,32 @@ watch(
     if (val) {
       description.value = "";
       files.value = [];
+      fileError.value = "";
     }
   }
 );
 
+function fileLabel(file: File) {
+  return resolvePostMediaType(file) === "video" ? "🎬" : "🖼";
+}
+
 function handleFiles(e: Event) {
   const target = e.target as HTMLInputElement;
-  if (!target.files) return;
-  files.value = Array.from(target.files);
+  if (!target.files?.length) return;
+
+  fileError.value = "";
+
+  for (const file of Array.from(target.files)) {
+    const error = validatePostMediaFile(file);
+    if (error) {
+      fileError.value = error;
+      continue;
+    }
+
+    files.value.push(file);
+  }
+
+  target.value = "";
 }
 
 function removeFile(index: number) {
@@ -84,6 +120,8 @@ function close() {
 }
 
 function submit() {
+  if (fileError.value) return;
+
   emit("submit", {
     description: description.value,
     files: files.value,
@@ -92,21 +130,20 @@ function submit() {
 </script>
 
 <style scoped>
-/* OVERLAY */
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  padding: 20px;
+  z-index: 10000;
 }
 
-/* MODAL */
 .modal {
-  width: 480px;
+  width: min(480px, 100%);
   background: rgba(20, 20, 20, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
@@ -115,7 +152,6 @@ function submit() {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
 
-/* HEADER */
 .header {
   display: flex;
   justify-content: space-between;
@@ -141,20 +177,17 @@ function submit() {
   opacity: 1;
 }
 
-/* TEXTAREA */
 .textarea {
   width: 100%;
   min-height: 120px;
   resize: none;
-
+  box-sizing: border-box;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-
   padding: 12px;
   color: white;
   outline: none;
-
   margin-bottom: 12px;
 }
 
@@ -162,7 +195,6 @@ function submit() {
   border-color: #4163FC;
 }
 
-/* UPLOAD */
 .upload {
   display: block;
   cursor: pointer;
@@ -173,11 +205,9 @@ function submit() {
   border: 1px dashed rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 14px;
-
   display: flex;
   flex-direction: column;
   gap: 4px;
-
   text-align: center;
   opacity: 0.8;
   transition: 0.2s;
@@ -188,7 +218,12 @@ function submit() {
   opacity: 1;
 }
 
-/* FILES */
+.error {
+  margin: 0 0 12px;
+  color: #ff8a8a;
+  font-size: 12px;
+}
+
 .files {
   display: flex;
   flex-direction: column;
@@ -200,11 +235,17 @@ function submit() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-
   padding: 8px 10px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
   font-size: 12px;
+  gap: 8px;
+}
+
+.file span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .file button {
@@ -213,13 +254,13 @@ function submit() {
   color: white;
   cursor: pointer;
   opacity: 0.6;
+  flex-shrink: 0;
 }
 
 .file button:hover {
   opacity: 1;
 }
 
-/* ACTIONS */
 .actions {
   display: flex;
   justify-content: space-between;

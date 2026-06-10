@@ -1,115 +1,224 @@
 <template>
-  <div v-if="modelValue" class="overlay" @click.self="close">
+  <Teleport to="body">
+    <div v-if="modelValue" class="overlay" @click.self="close">
+      <div class="modal">
+        <button class="close-btn" type="button" @click="close">×</button>
 
-    <div class="modal">
+        <div class="top">
+          <h2>Редактировать пост</h2>
+        </div>
 
-      <!-- HEADER -->
-      <div class="top">
-        <h2>Edit post</h2>
+        <textarea
+          v-model="localDescription"
+          class="description"
+          placeholder="Описание поста..."
+        />
 
-        <!-- 3 DOT MENU -->
-        <div class="menu-wrapper" v-if="localMedia.length">
-
-          <button class="dots" @click="toggleMenu">
-            ⋮
+        <div class="gallery">
+          <button
+            v-if="hasMultiple"
+            class="nav left"
+            type="button"
+            @click.stop="prev"
+          >
+            ‹
           </button>
 
-          <div v-if="menuOpen" class="dropdown">
+          <div class="media-box">
+            <video
+              v-if="current && isVideo(current)"
+              :key="`video-${current.id}`"
+              :src="current.url"
+              class="preview"
+              controls
+              playsinline
+            />
+            <img
+              v-else-if="current?.url"
+              :key="`image-${current.id}`"
+              :src="current.url"
+              class="preview"
+              alt=""
+            />
+            <div v-else class="empty">
+              <p>Медиа пока нет</p>
+              <div class="empty-actions">
+                <button type="button" @click="startUpload('image')">Добавить фото</button>
+                <button type="button" @click="startUpload('video')">Добавить видео</button>
+              </div>
+            </div>
+          </div>
 
-            <button @click="removeCurrent">🗑 Delete current</button>
+          <button
+            v-if="hasMultiple"
+            class="nav right"
+            type="button"
+            @click.stop="next"
+          >
+            ›
+          </button>
 
-            <button @click="removeAll">🧨 Delete all</button>
+          <div v-if="hasMultiple" class="thumbnails">
+            <button
+              v-for="(item, i) in localMedia"
+              :key="item.id"
+              type="button"
+              class="thumb"
+              :class="{ active: i === index }"
+              @click.stop="goTo(i)"
+            >
+              <video
+                v-if="isVideo(item)"
+                :src="item.url"
+                muted
+                playsinline
+                preload="metadata"
+              />
+              <img v-else :src="item.url" alt="" />
+            </button>
+          </div>
 
-            <label class="file">
-              ➕ Add media
-              <input type="file" multiple hidden @change="addFiles" />
-            </label>
+          <div v-if="hasMultiple" class="counter">
+            {{ index + 1 }} / {{ localMedia.length }}
+          </div>
 
+          <div v-if="current" class="badge">
+            {{ isVideo(current) ? "Видео" : "Фото" }}
+          </div>
+
+          <div class="menu-wrapper">
+            <button class="menu-btn" type="button" @click.stop="toggleMenu">⋯</button>
+
+            <div v-if="menuOpen" class="menu" @click.stop>
+              <button type="button" @click="startUpload('image')">Добавить фото</button>
+              <button type="button" @click="startUpload('video')">Добавить видео</button>
+              <button type="button" :disabled="!current || uploading" @click="replaceCurrent">
+                Заменить текущее
+              </button>
+              <button type="button" class="danger" :disabled="!current" @click="removeCurrent">
+                Удалить текущее
+              </button>
+              <button type="button" class="danger strong" :disabled="!localMedia.length" @click="removeAll">
+                Удалить все
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- MEDIA -->
-      <div v-if="localMedia.length" class="media">
+        <p v-if="uploadHint" class="hint">{{ uploadHint }}</p>
+        <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+        <p v-if="uploading" class="uploading">Загрузка медиа...</p>
 
-        <button class="nav left" @click="prev">‹</button>
-
-        <img v-if="current && current.mediaType === 'image'" :src="current.url" />
-        <video v-else-if="current" :src="current.url" controls />
-        <button class="nav right" @click="next">›</button>
-
-        <div class="counter">
-          {{ index + 1 }} / {{ localMedia.length }}
+        <div class="actions">
+          <button class="btn cancel" type="button" :disabled="uploading" @click="close">
+            Отмена
+          </button>
+          <button class="btn save" type="button" :disabled="uploading" @click="save">
+            Сохранить
+          </button>
         </div>
 
+        <input
+          ref="fileInput"
+          type="file"
+          hidden
+          :accept="fileAccept"
+          @change="onFileChange"
+        />
       </div>
-
-      <!-- EMPTY STATE -->
-      <div v-else class="empty">
-        No media yet — add something 👇
-      </div>
-
-      <!-- DESCRIPTION -->
-      <textarea v-model="localDescription" />
-
-      <!-- ACTIONS -->
-      <div class="actions">
-        <button class="btn cancel" @click="close">Cancel</button>
-        <button class="btn save" @click="save">Save</button>
-      </div>
-
     </div>
-
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
+import { computed, ref, watch } from "vue";
+
 import type { PostFull } from "@/interface/models/post/PostFull";
+import type { PostMedia } from "@/interface/models/post/PostMedia";
+import { PostService } from "@/service/postService";
+import { normalizePostMedia } from "@/utils/postNormalize";
+import {
+  MAX_POST_IMAGE_MB,
+  MAX_POST_VIDEO_MB,
+  POST_IMAGE_ACCEPT,
+  POST_VIDEO_ACCEPT,
+  resolvePostMediaType,
+  validatePostMediaFile,
+} from "@/utils/postMediaValidation";
+
 const props = defineProps<{
   modelValue: boolean;
   post: PostFull | null;
 }>();
-import { PostService } from "@/service/postService";
+
+const emit = defineEmits<{
+  "update:modelValue": [value: boolean];
+  save: [payload: { id: string; description: string; media: PostMedia[] }];
+}>();
 
 const postService = new PostService();
 
-const emit = defineEmits(["update:modelValue", "save"]);
-
 const localDescription = ref("");
-const localMedia = ref<import("@/interface/models/post/PostMedia").PostMedia[]>([]);
+const localMedia = ref<PostMedia[]>([]);
 const index = ref(0);
 const menuOpen = ref(false);
+const fileInput = ref<HTMLInputElement | null>(null);
+const mode = ref<"add" | "replace">("add");
+const pendingType = ref<"image" | "video">("image");
+const uploadHint = ref("");
+const errorMessage = ref("");
+const uploading = ref(false);
+
+const fileAccept = computed(() =>
+  pendingType.value === "video" ? POST_VIDEO_ACCEPT : POST_IMAGE_ACCEPT
+);
+
+const current = computed(() => localMedia.value[index.value] ?? null);
+const hasMultiple = computed(() => localMedia.value.length > 1);
 
 watch(
   () => props.post,
-  (p) => {
-    if (!p) return;
+  (post) => {
+    if (!post) return;
 
-    localDescription.value = p.description;
-
-    localMedia.value = [...p.media];
-
+    localDescription.value = post.description;
+    localMedia.value = [...post.media];
     index.value = 0;
     menuOpen.value = false;
+    errorMessage.value = "";
+    uploadHint.value = "";
   },
   { immediate: true }
 );
 
-const current = computed(() => {
-  return localMedia.value[index.value] ?? null;
-});
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (!open) {
+      menuOpen.value = false;
+      errorMessage.value = "";
+      uploadHint.value = "";
+    }
+  }
+);
+
+function isVideo(item: PostMedia) {
+  return item.mediaType?.toLowerCase() === "video";
+}
 
 function close() {
   emit("update:modelValue", false);
 }
 
-/* MENU */
 function toggleMenu() {
   menuOpen.value = !menuOpen.value;
 }
 
-/* NAV */
+function goTo(i: number) {
+  if (i < 0 || i >= localMedia.value.length) return;
+  index.value = i;
+}
+
 function next() {
   if (!localMedia.value.length) return;
   index.value = (index.value + 1) % localMedia.value.length;
@@ -118,12 +227,32 @@ function next() {
 function prev() {
   if (!localMedia.value.length) return;
   index.value =
-    index.value <= 0
-      ? localMedia.value.length - 1
-      : index.value - 1;
+    index.value <= 0 ? localMedia.value.length - 1 : index.value - 1;
 }
 
-/* DELETE CURRENT */
+function startUpload(type: "image" | "video") {
+  mode.value = "add";
+  pendingType.value = type;
+  uploadHint.value =
+    type === "video"
+      ? `Видео до ${MAX_POST_VIDEO_MB} МБ`
+      : `Фото до ${MAX_POST_IMAGE_MB} МБ`;
+  fileInput.value?.click();
+  menuOpen.value = false;
+}
+
+function replaceCurrent() {
+  if (!current.value) return;
+
+  mode.value = "replace";
+  pendingType.value = isVideo(current.value) ? "video" : "image";
+  uploadHint.value = isVideo(current.value)
+    ? `Видео до ${MAX_POST_VIDEO_MB} МБ`
+    : `Фото до ${MAX_POST_IMAGE_MB} МБ`;
+  fileInput.value?.click();
+  menuOpen.value = false;
+}
+
 function removeCurrent() {
   localMedia.value.splice(index.value, 1);
 
@@ -140,50 +269,81 @@ function removeCurrent() {
   menuOpen.value = false;
 }
 
-/* DELETE ALL */
 function removeAll() {
   localMedia.value = [];
   index.value = 0;
   menuOpen.value = false;
 }
 
-async function addFiles(e: Event) {
-  const files = (e.target as HTMLInputElement).files;
-  if (!files || !props.post) return;
+async function uploadFile(file: File, replaceIndex?: number) {
+  if (!props.post) return;
 
-  menuOpen.value = false;
+  const validationError = validatePostMediaFile(file);
+  if (validationError) {
+    errorMessage.value = validationError;
+    return;
+  }
 
-  for (const file of Array.from(files)) {
+  errorMessage.value = "";
+  uploading.value = true;
+
+  try {
     const form = new FormData();
-
     form.append("file", file);
-    form.append(
-      "mediaType",
-      file.type.startsWith("video") ? "video" : "image"
-    );
+    form.append("mediaType", resolvePostMediaType(file));
 
     const res = await postService.uploadPostMedia(props.post.id, form);
 
-    if (res) {
-      localMedia.value.push(res.data);
+    if (!res.success || !res.data) {
+      errorMessage.value = res.error?.message ?? "Не удалось загрузить медиа";
+      return;
     }
+
+    const uploaded = normalizePostMedia(res.data);
+
+    if (mode.value === "replace" && replaceIndex !== undefined) {
+      localMedia.value.splice(replaceIndex, 1, uploaded);
+      index.value = Math.min(replaceIndex, localMedia.value.length - 1);
+    } else {
+      localMedia.value.push(uploaded);
+      index.value = localMedia.value.length - 1;
+    }
+
+    uploadHint.value = "";
+  } catch {
+    errorMessage.value = "Ошибка загрузки. Проверьте размер файла и соединение.";
+  } finally {
+    uploading.value = false;
   }
 }
 
-/* SAVE */
+async function onFileChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+
+  const replaceIndex =
+    mode.value === "replace" ? index.value : undefined;
+
+  await uploadFile(file, replaceIndex);
+
+  if (fileInput.value) {
+    fileInput.value.value = "";
+  }
+}
+
 function save() {
-  if (!props.post) return;
+  if (!props.post || uploading.value) return;
 
   emit("save", {
     id: props.post.id,
     description: localDescription.value,
-    media: localMedia.value.map(m => ({
+    media: localMedia.value.map((m) => ({
       id: m.id,
       url: m.url,
       fileKey: m.fileKey,
       bucket: m.bucket,
-      mediaType: m.mediaType
-    }))
+      mediaType: m.mediaType,
+    })),
   });
 
   close();
@@ -194,64 +354,123 @@ function save() {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, .7);
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 10000;
+  padding: 16px;
 }
 
 .modal {
-  width: 520px;
-  background: #181818;
-  border-radius: 18px;
-  padding: 16px;
-  color: white;
-}
-
-/* HEADER */
-.top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.media-actions button,
-.add {
-  background: #222;
-  border: none;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-left: 6px;
-}
-
-/* MEDIA */
-.media {
   position: relative;
-  margin-top: 12px;
+  width: min(720px, 96vw);
+  max-height: 92vh;
+  overflow-y: auto;
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 18px;
+  color: white;
 }
 
-.media img,
-.media video {
+.close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  border: none;
+  background: transparent;
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  opacity: 0.7;
+  z-index: 2;
+}
+
+.top h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.description {
   width: 100%;
-  height: 260px;
-  object-fit: cover;
+  box-sizing: border-box;
+  min-height: 96px;
+  resize: vertical;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
+  padding: 12px;
+  color: white;
+  margin-bottom: 14px;
+}
+
+.gallery {
+  position: relative;
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.media-box {
+  width: 100%;
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview {
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #000;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  opacity: 0.85;
+  padding: 24px;
+}
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.empty-actions button {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #4163fc, #5b7cff);
+  color: white;
+  font-weight: 600;
+  font-size: 13px;
 }
 
 .nav {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(0, 0, 0, .5);
+  z-index: 2;
+  width: 38px;
+  height: 38px;
   border: none;
-  color: white;
-  width: 34px;
-  height: 34px;
   border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
   cursor: pointer;
+  font-size: 22px;
 }
 
 .nav.left {
@@ -262,41 +481,162 @@ function save() {
   right: 8px;
 }
 
-.counter {
+.thumbnails {
   position: absolute;
   bottom: 8px;
-  right: 10px;
-  background: rgba(0, 0, 0, .6);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 14px;
+  max-width: calc(100% - 24px);
+  overflow-x: auto;
+  z-index: 2;
+}
+
+.thumb {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #222;
+}
+
+.thumb.active {
+  border-color: #4163fc;
+}
+
+.thumb img,
+.thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.counter {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.55);
   padding: 4px 8px;
   border-radius: 8px;
   font-size: 12px;
 }
 
-/* TEXTAREA */
-textarea {
-  width: 100%;
-  margin-top: 12px;
-  min-height: 100px;
-  background: #111;
-  border: 1px solid #333;
-  color: white;
-  padding: 10px;
-  border-radius: 10px;
+.badge {
+  position: absolute;
+  top: 8px;
+  right: 48px;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
 }
 
-/* ACTIONS */
+.menu-wrapper {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+}
+
+.menu-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: 42px;
+  min-width: 210px;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu button {
+  border: none;
+  background: transparent;
+  color: white;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.menu button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.menu .danger {
+  color: #ff4d4d;
+}
+
+.menu .strong {
+  font-weight: 700;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hint,
+.error,
+.uploading {
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+.hint {
+  color: #aaa;
+}
+
+.error {
+  color: #ff8a8a;
+}
+
+.uploading {
+  color: #9eb0ff;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .btn {
-  padding: 8px 12px;
+  padding: 10px 16px;
   border-radius: 10px;
   border: none;
   cursor: pointer;
+  font-weight: 600;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .cancel {
@@ -305,56 +645,17 @@ textarea {
 }
 
 .save {
-  background: #4163FC;
+  background: #4163fc;
   color: white;
 }
 
-.menu-wrapper {
-  position: relative;
-}
+@media (max-width: 640px) {
+  .modal {
+    padding: 14px;
+  }
 
-.dots {
-  background: #222;
-  border: none;
-  color: white;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.dropdown {
-  position: absolute;
-  right: 0;
-  top: 38px;
-  background: #1e1e1e;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-width: 180px;
-  z-index: 10;
-}
-
-.dropdown button,
-.file {
-  padding: 10px;
-  background: transparent;
-  border: none;
-  color: white;
-  text-align: left;
-  cursor: pointer;
-}
-
-.dropdown button:hover,
-.file:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.empty {
-  margin-top: 12px;
-  opacity: 0.6;
-  text-align: center;
+  .preview {
+    max-height: 240px;
+  }
 }
 </style>

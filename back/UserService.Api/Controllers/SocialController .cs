@@ -1,14 +1,4 @@
 ﻿
-//{====================================================================}
-//{ Модуль AuthController.cs}
-//{ гр.П41 }
-//{ Разработчик: Куприянович А.П }
-//{ Модифицирован: 27.05.2026 }
-//{ --------------------------------------------------------------------}
-//{модуль для взаимодействия пользователей(блок/добавление в друзья)
-//{ ********************************************************************}  
-using System.Security.Claims;
-
 using MediatR;
 
 using Microsoft.AspNetCore.Authorization;
@@ -21,7 +11,9 @@ using UserService.Application.MediatR.GetBlocked;
 using UserService.Application.MediatR.GetFriends;
 using UserService.Application.MediatR.RemoveFriend;
 using UserService.Application.MediatR.Social.SearchUsers;
+using UserService.Application.MediatR.RenameFriend;
 using UserService.Application.MediatR.UnblockUser;
+using UserService.Api.Extensions;
 
 namespace UserService.Api.Controllers
 {
@@ -37,166 +29,125 @@ namespace UserService.Api.Controllers
             _mediator = mediator;
         }
 
-        // =========================
-        // GET FRIENDS
-        // =========================
-
         [HttpGet("social/friends")]
         public async Task<IActionResult> GetFriends()
         {
-            var userIdClaim =
-                User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim is null)
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
 
-            var command = new GetFriendsCommand
-            {
-                UserId = Guid.Parse(userIdClaim.Value)
-            };
-
-            var result = await _mediator.Send(command);
-
+            var result = await _mediator.Send(new GetFriendsCommand { UserId = userId.Value });
             return Ok(result);
         }
-
-        // =========================
-        // GET BLOCKED
-        // =========================
 
         [HttpGet("social/blocked")]
         public async Task<IActionResult> GetBlocked()
         {
-            var userIdClaim =
-                User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim is null)
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
 
-            var command = new GetBlockedCommand
-            {
-                UserId = Guid.Parse(userIdClaim.Value)
-            };
-
-            var result = await _mediator.Send(command);
-
+            var result = await _mediator.Send(new GetBlockedCommand { UserId = userId.Value });
             return Ok(result);
         }
-
-        // =========================
-        // ADD FRIEND
-        // =========================
 
         [HttpPost("social/friends")]
-        public async Task<IActionResult> AddFriend(
-            [FromBody] AddFriendRequest request)
+        public async Task<IActionResult> AddFriend([FromBody] AddFriendRequest request)
         {
-            var userIdClaim =
-                User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim is null)
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
 
-            var command = new AddFriendCommand
+            var result = await _mediator.Send(new AddFriendCommand
             {
-                MyId = Guid.Parse(userIdClaim.Value),
+                MyId = userId.Value,
                 FriendId = request.UserId
-            };
-
-            var result = await _mediator.Send(command);
+            });
 
             return Ok(result);
         }
 
-        // =========================
-        // REMOVE FRIEND
-        // =========================
-
-        [HttpDelete("social/friends/{userId}")]
+        [HttpDelete("social/friends/{userId:guid}")]
         public async Task<IActionResult> RemoveFriend(Guid userId)
         {
-            var userIdClaim =
-                User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim is null)
+            var myId = User.GetUserId();
+            if (myId is null)
                 return Unauthorized();
 
-            var command = new RemoveFriendCommand
+            var result = await _mediator.Send(new RemoveFriendCommand
             {
-                MyId = Guid.Parse(userIdClaim.Value),
+                MyId = myId.Value,
                 FriendId = userId
-            };
-
-            var result = await _mediator.Send(command);
+            });
 
             return Ok(result);
         }
-
-        // =========================
-        // BLOCK USER
-        // =========================
 
         [HttpPost("social/block")]
-        public async Task<IActionResult> BlockUser(
-            [FromBody] BlockUserRequest request)
+        public async Task<IActionResult> BlockUser([FromBody] BlockUserRequest request)
         {
-            var userIdClaim =
-                User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim is null)
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
 
-            var command = new BlockUserCommand
+            var result = await _mediator.Send(new BlockUserCommand
             {
-                MyId = Guid.Parse(userIdClaim.Value),
+                MyId = userId.Value,
                 BlackId = request.UserId
-            };
-
-            var result = await _mediator.Send(command);
+            });
 
             return Ok(result);
         }
 
-        // =========================
-        // UNBLOCK USER
-        // =========================
-
-        [HttpDelete("social/block/{userId}")]
+        [HttpDelete("social/block/{userId:guid}")]
         public async Task<IActionResult> UnblockUser(Guid userId)
         {
-            var userIdClaim =
-                User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim is null)
+            var myId = User.GetUserId();
+            if (myId is null)
                 return Unauthorized();
 
-            var command = new UnblockUserCommand
+            var result = await _mediator.Send(new UnblockUserCommand
             {
-                MyId = Guid.Parse(userIdClaim.Value),
+                MyId = myId.Value,
                 BlackId = userId
-            };
-
-            var result = await _mediator.Send(command);
+            });
 
             return Ok(result);
         }
+
+        [HttpPatch("social/friends/{userId:guid}/rename")]
+        public async Task<IActionResult> RenameFriend(
+            Guid userId,
+            [FromBody] RenameFriendRequest request)
+        {
+            var myId = User.GetUserId();
+            if (myId is null)
+                return Unauthorized();
+
+            var result = await _mediator.Send(new RenameFriendCommand
+            {
+                MyId = myId.Value,
+                FriendId = userId,
+                Login = request.Login
+            });
+
+            return Ok(result);
+        }
+
         [HttpGet("social/users")]
         public async Task<IActionResult> SearchUsers([FromQuery] SearchUsersRequest request)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim is null)
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
 
-            var query = new SearchUsersQuery
+            var result = await _mediator.Send(new SearchUsersQuery
             {
-                MyId = Guid.Parse(userIdClaim.Value),
+                MyId = userId.Value,
                 Search = request.Search,
                 Page = request.Page,
                 PageSize = request.PageSize
-            };
-
-            var result = await _mediator.Send(query);
+            });
 
             return Ok(result);
         }

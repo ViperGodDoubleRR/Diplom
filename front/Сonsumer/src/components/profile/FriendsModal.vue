@@ -1,6 +1,7 @@
 <template>
-  <Transition name="modal">
-    <div v-if="modelValue" class="overlay" @click.self="close">
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="modelValue" class="overlay" @click.self="close">
       <div class="modal">
 
         <!-- HEADER -->
@@ -38,8 +39,19 @@
 
           <!-- FRIENDS -->
           <div v-if="tab === 'friends'">
-            <div v-for="u in friends" :key="u.id" class="row hoverable" @click="openProfile(u.id)">
-              <img :src="u.avatarUrl || fallback" />
+            <p v-if="!filteredFriends.length" class="empty">
+              {{ search.trim() ? "Друзья не найдены" : "Список друзей пуст" }}
+            </p>
+
+            <div v-for="u in filteredFriends" :key="u.id" class="row hoverable" @click="openProfile(u.id)">
+              <div class="avatar-cell">
+                <UserAvatar
+                  :size="42"
+                  :name="u.login"
+                  :src="u.avatarUrl"
+                  :is-video="u.avatarIsVideo"
+                />
+              </div>
 
               <div class="info">
                 <div class="name">{{ u.login }}</div>
@@ -47,6 +59,10 @@
               </div>
 
               <div class="actions">
+                <button class="btn" @click.stop="emit('rename', u.id)">
+                  Rename
+                </button>
+
                 <button class="btn danger" @click.stop="emit('removeFriend', u.id)">
                   Remove
                 </button>
@@ -60,8 +76,19 @@
 
           <!-- BLOCKED -->
           <div v-else-if="tab === 'blocked'">
-            <div v-for="u in blocked" :key="u.id" class="row hoverable" @click="openProfile(u.id)">
-              <img :src="u.avatarUrl || fallback" />
+            <p v-if="!filteredBlocked.length" class="empty">
+              {{ search.trim() ? "Заблокированные не найдены" : "Чёрный список пуст" }}
+            </p>
+
+            <div v-for="u in filteredBlocked" :key="u.id" class="row hoverable" @click="openProfile(u.id)">
+              <div class="avatar-cell">
+                <UserAvatar
+                  :size="42"
+                  :name="u.login"
+                  :src="u.avatarUrl"
+                  :is-video="u.avatarIsVideo"
+                />
+              </div>
 
               <div class="info">
                 <div class="name">{{ u.login }}</div>
@@ -78,9 +105,20 @@
 
           <!-- ALL USERS -->
           <div v-else-if="tab === 'all'">
+            <p v-if="loading" class="empty">Поиск...</p>
+            <p v-else-if="!allUsers.length" class="empty">
+              {{ search.trim() ? "Пользователи не найдены" : "Нет пользователей для показа" }}
+            </p>
 
             <div v-for="u in allUsers" :key="u.id" class="row hoverable" @click="openProfile(u.id)">
-              <img :src="u.avatarUrl || fallback" />
+              <div class="avatar-cell">
+                <UserAvatar
+                  :size="42"
+                  :name="u.login"
+                  :src="u.avatarUrl"
+                  :is-video="u.avatarIsVideo"
+                />
+              </div>
 
               <div class="info grow">
                 <div class="name">{{ u.login }}</div>
@@ -106,7 +144,7 @@
 
               <span>Page {{ page }}</span>
 
-              <button @click="nextPage">
+              <button @click="nextPage" :disabled="loading || !hasMore">
                 Next
               </button>
             </div>
@@ -116,16 +154,20 @@
         </div>
 
       </div>
-    </div>
-  </Transition>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
+import UserAvatar from "@/components/ui/UserAvatar.vue";
+import { useSocialStore } from "@/store/socialStore";
 
-import type { Friend } from "@/interface/models/profile/Friend";
-import type { BlackList } from "@/interface/models/profile/BlackList";
-import type { UserPreview } from "@/interface/models/profile/UserPreview";
+import {
+  filterSocialUsersByQuery,
+  type SocialListUser,
+} from "@/utils/socialUser";
 
 type Tab = "friends" | "blocked" | "all";
 import { useRouter } from "vue-router";
@@ -135,10 +177,12 @@ function openProfile(userId: string) {
 }
 const props = defineProps<{
   modelValue: boolean;
-  friends: Friend[];
-  blocked: BlackList[];
-  allUsers: UserPreview[];
+  friends: SocialListUser[];
+  blocked: SocialListUser[];
+  allUsers: SocialListUser[];
   page: number;
+  hasMore?: boolean;
+  loading?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -152,37 +196,73 @@ const emit = defineEmits<{
   (e: "block", id: string): void;
 
   (e: "removeFriend", id: string): void;
+  (e: "rename", id: string): void;
   (e: "unblock", id: string): void;
 }>();
 
 const tab = ref<Tab>("friends");
 const search = ref("");
+const socialStore = useSocialStore();
 
-const fallback = "https://i.pravatar.cc/150";
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+const filteredFriends = computed(() =>
+  filterSocialUsersByQuery(props.friends, search.value)
+);
+
+const filteredBlocked = computed(() =>
+  filterSocialUsersByQuery(props.blocked, search.value)
+);
+
+watch(
+  () => props.modelValue,
+  async (open) => {
+    if (!open) return;
+
+    await Promise.all([socialStore.getFriends(), socialStore.getBlocked()]);
+
+    if (tab.value === "all") {
+      emitDirectorySearch(1);
+    }
+  }
+);
+
+onUnmounted(() => {
+  if (debounceTimer) clearTimeout(debounceTimer);
+});
 
 function close() {
   emit("update:modelValue", false);
 }
 
+function emitDirectorySearch(page: number) {
+  emit("search", {
+    search: search.value,
+    tab: "all",
+    page,
+  });
+}
+
 function setTab(t: Tab) {
   tab.value = t;
 
-  emit("search", {
-    search: search.value,
-    tab: t,
-    page: 1,
-  });
+  if (t === "all") {
+    emitDirectorySearch(1);
+  }
 }
 
 function onSearch() {
-  emit("search", {
-    search: search.value,
-    tab: tab.value,
-    page: 1,
-  });
+  if (tab.value !== "all") return;
+
+  if (debounceTimer) clearTimeout(debounceTimer);
+
+  debounceTimer = setTimeout(() => {
+    emitDirectorySearch(1);
+  }, 300);
 }
 
 function nextPage() {
+  if (!props.hasMore || props.loading) return;
   emit("page", props.page + 1);
 }
 
@@ -195,16 +275,17 @@ function prevPage() {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, .7);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(10px);
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 10000;
 }
 
 .modal {
   width: 560px;
-  max-height: 85vh;
+  max-width: calc(100vw - 32px);
   background: #0f0f0f;
   border: 1px solid #222;
   border-radius: 18px;
@@ -213,12 +294,26 @@ function prevPage() {
   overflow: hidden;
 }
 
-/* HEADER */
 .header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
   padding: 14px 16px;
   border-bottom: 1px solid #222;
+  flex-shrink: 0;
+}
+
+.header h2 {
+  color: white;
+  margin: 0;
+  font-size: 18px;
+}
+
+.header p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #777;
 }
 
 .close-btn {
@@ -267,8 +362,8 @@ function prevPage() {
 /* LIST */
 .list {
   overflow-y: auto;
-  flex: 1;
-  padding: 0 12px;
+  max-height: 420px;
+  padding: 0 12px 12px;
 }
 
 /* ROW */
@@ -276,47 +371,67 @@ function prevPage() {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px;
+  padding: 10px 4px;
   border-bottom: 1px solid #1f1f1f;
 }
 
-.row img {
+.avatar-cell {
+  flex: 0 0 42px;
   width: 42px;
   height: 42px;
-  border-radius: 50%;
+}
+
+.avatar-cell :deep(.avatar-shell) {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
 }
 
 .info {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
 
 .grow {
   flex: 1;
+  min-width: 0;
 }
 
 .name {
   color: white;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tag {
-  font-size: 12px;
+  font-size: 11px;
   color: #777;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ACTIONS */
 .actions {
   display: flex;
-  gap: 6px;
+  flex-shrink: 0;
+  gap: 4px;
 }
 
 .btn {
-  padding: 6px 10px;
+  padding: 5px 8px;
+  font-size: 12px;
   background: #2d5bff;
   border: none;
   color: white;
   border-radius: 8px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .btn.danger {
@@ -344,5 +459,17 @@ function prevPage() {
   color: white;
   padding: 6px 10px;
   border-radius: 8px;
+}
+
+.pagination button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.empty {
+  margin: 12px 0;
+  text-align: center;
+  color: #777;
+  font-size: 13px;
 }
 </style>

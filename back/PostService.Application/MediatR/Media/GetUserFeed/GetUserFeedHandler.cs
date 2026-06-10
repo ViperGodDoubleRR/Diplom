@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using MediatR;
+﻿using MediatR;
 
 using PostService.Application.DTO;
-using PostService.Application.MediatR.Media.GetUserPosts;
+using PostService.Application.Mapping;
+using PostService.Application.Services;
+using PostService.Application.Validation;
 using PostService.Domain.IRepository;
 
 using Shared.Application.Contracts;
@@ -21,48 +17,63 @@ namespace PostService.Application.MediatR.Media.GetUserFeed
         private readonly IPostRepository _postRepository;
         private readonly IPostMediaRepository _mediaRepository;
         private readonly IMinioService _minio;
+        private readonly PostCommentsCountProvider _commentsCountProvider;
 
         public GetUserPostsFeedHandler(
             IPostRepository postRepository,
             IPostMediaRepository mediaRepository,
-            IMinioService minio)
+            IMinioService minio,
+            PostCommentsCountProvider commentsCountProvider)
         {
             _postRepository = postRepository;
             _mediaRepository = mediaRepository;
             _minio = minio;
+            _commentsCountProvider = commentsCountProvider;
         }
 
         public async Task<ApiResponse<List<PostFullDto>>> Handle(
             GetUserPostsFeedQuery request,
             CancellationToken cancellationToken)
         {
+            var (page, pageSize) = PostValidation.NormalizePaging(request.Page, request.PageSize);
+
             var posts = await _postRepository.GetUserPostsAsync(
                 request.UserId,
-                request.Page,
-                request.PageSize
-            );
+                page,
+                pageSize,
+                cancellationToken);
+
+            if (posts.Count == 0)
+            {
+                return new ApiResponse<List<PostFullDto>>
+                {
+                    Success = true,
+                    Data = []
+                };
+            }
+
+            var postIds = posts.Select(p => p.Id).ToList();
+            var mediaByPost = await _mediaRepository.GetByPostIdsAsync(postIds, cancellationToken);
+            var likesCounts = await _postRepository.GetLikesCountsAsync(postIds, cancellationToken);
+            var favoritesCounts = await _postRepository.GetFavoritesCountsAsync(postIds, cancellationToken);
+            var likedPostIds = await _postRepository.GetLikedPostIdsAsync(
+                postIds,
+                request.CurrentUserId,
+                cancellationToken);
+            var favoritePostIds = await _postRepository.GetFavoritePostIdsAsync(
+                postIds,
+                request.CurrentUserId,
+                cancellationToken);
+            var commentsCounts = await _commentsCountProvider.GetCountsAsync(
+                postIds,
+                cancellationToken);
 
             var result = new List<PostFullDto>();
 
             foreach (var post in posts)
             {
-                var media = await _mediaRepository.GetByPostIdAsync(post.Id);
-
-                var mediaDtos = new List<PostMediaDto>();
-
-                foreach (var m in media)
-                {
-                    var url = await _minio.GetFileUrlAsync(m.FileKey, m.Bucket);
-
-                    mediaDtos.Add(new PostMediaDto
-                    {
-                        Id = m.Id,
-                        Url = url,
-                        FileKey = m.FileKey,
-                        Bucket = m.Bucket,
-                        MediaType = m.MediaType
-                    });
-                }
+                mediaByPost.TryGetValue(post.Id, out var media);
+                var mediaDtos = await PostMapper.ToDtoListAsync(media ?? [], _minio, cancellationToken);
 
                 result.Add(new PostFullDto
                 {
@@ -70,18 +81,12 @@ namespace PostService.Application.MediatR.Media.GetUserFeed
                     UserId = post.UserId,
                     Description = post.Description,
                     CreatedAt = post.CreatedAt,
-
                     Media = mediaDtos,
-
-                    LikesCount = await _postRepository.GetLikesCountAsync(post.Id),
-
-                    FavoritesCount = await _postRepository.GetFavoritesCountAsync(post.Id),
-
-                    CommentsCount = 0,
-
-                    IsLiked = await _postRepository.IsPostLikedAsync(post.Id,request.CurrentUserId),
-
-                    IsFavorite = await _postRepository.IsPostFavoriteAsync(post.Id,request.CurrentUserId)
+                    LikesCount = likesCounts.GetValueOrDefault(post.Id),
+                    FavoritesCount = favoritesCounts.GetValueOrDefault(post.Id),
+                    CommentsCount = commentsCounts.GetValueOrDefault(post.Id),
+                    IsLiked = likedPostIds.Contains(post.Id),
+                    IsFavorite = favoritePostIds.Contains(post.Id)
                 });
             }
 

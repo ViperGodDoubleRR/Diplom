@@ -1,6 +1,48 @@
-@CommentService.Api_HostAddress = http://localhost:5282
+@CommentService_HostAddress = http://localhost:5097
 
-GET {{CommentService.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Create comment
+POST {{CommentService_HostAddress}}/
+Authorization: Bearer {{token}}
+Content-Type: application/json
 
-###
+{
+  "postId": "00000000-0000-0000-0000-000000000001",
+  "text": "Test comment"
+}
+
+### Get post comments
+GET {{CommentService_HostAddress}}/post/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{token}}
+
+### Upload comment media
+POST {{CommentService_HostAddress}}/00000000-0000-0000-0000-000000000002/media
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="mediaType"
+
+image
+--boundary
+Content-Disposition: form-data; name="file"; filename="photo.jpg"
+Content-Type: image/jpeg
+
+< ./photo.jpg
+--boundary--
+
+### Delete comment media
+DELETE {{CommentService_HostAddress}}/00000000-0000-0000-0000-000000000002/media
+Authorization: Bearer {{token}}
+
+### Delete comment
+DELETE {{CommentService_HostAddress}}/00000000-0000-0000-0000-000000000002
+Authorization: Bearer {{token}}
+
+### Add reaction
+POST {{CommentService_HostAddress}}/00000000-0000-0000-0000-000000000002/reaction
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "type": 0
+}

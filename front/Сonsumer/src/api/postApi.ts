@@ -35,6 +35,9 @@ export class PostApi {
       headers: {
         "Content-Type": "multipart/form-data",
       },
+      timeout: 15 * 60 * 1000,
+      maxContentLength: 310 * 1024 * 1024,
+      maxBodyLength: 310 * 1024 * 1024,
     }
   );
 
@@ -49,7 +52,8 @@ async getUserFeedPosts(userId: string, page: number, pageSize: number) {
 }
 async likePost(postId: string) {
   const res = await api.post<ApiResponse<boolean>>(
-    `/post/${postId}/like`
+    `/post/${postId}/like`,
+    {}
   );
 
   return res.data;
@@ -65,7 +69,8 @@ async unlikePost(postId: string) {
 
 async favoritePost(postId: string) {
   const res = await api.post<ApiResponse<boolean>>(
-    `/post/${postId}/favorite`
+    `/post/${postId}/favorite`,
+    {}
   );
 
   return res.data;

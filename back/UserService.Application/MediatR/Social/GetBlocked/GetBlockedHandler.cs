@@ -1,22 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using MediatR;
+﻿using MediatR;
 
 using Shared.Application.Contracts;
 using Shared.MinIO.Interfaces;
 
 using UserService.Application.DTO;
+using UserService.Application.Mapping;
 using UserService.Domain.IRepository;
 
 namespace UserService.Application.MediatR.GetBlocked
 {
     public class GetBlockedHandler
-        : IRequestHandler<GetBlockedCommand,
-            ApiResponse<List<BlackListDto>>>
+        : IRequestHandler<GetBlockedCommand, ApiResponse<List<BlackListDto>>>
     {
         private readonly ISocialRepository _socialRepository;
         private readonly IMediaRepository _mediaRepository;
@@ -36,29 +30,42 @@ namespace UserService.Application.MediatR.GetBlocked
             GetBlockedCommand request,
             CancellationToken cancellationToken)
         {
-            var blocked =
-                await _socialRepository.GetBlockedAsync(request.UserId);
+            var blocked = await _socialRepository.GetBlockedAsync(request.UserId, cancellationToken);
 
-            var result = new List<BlackListDto>();
-
-            foreach (var user in blocked)
+            if (blocked.Count == 0)
             {
-                var avatar =
-                    (await _mediaRepository.GetByUserIdAsync(user.BlackId))
-                    .FirstOrDefault(x => x.MediaType == "avatar");
-
-                result.Add(new BlackListDto
+                return new ApiResponse<List<BlackListDto>>
                 {
-                    Id = user.Black.Id,
-                    Login = user.Black.Login,
-                    Tag = user.Black.Tag,
-                    AvatarUrl = avatar is null
-                        ? null
-                        : await _minio.GetFileUrlAsync(
-                            avatar.FileKey,
-                            avatar.Bucket)
-                });
+                    Success = true,
+                    Data = []
+                };
             }
+
+            var blockedIds = blocked.Select(b => b.BlackId).ToList();
+            var profileMedia = await _mediaRepository.GetProfileMediaByUserIdsAsync(
+                blockedIds,
+                cancellationToken);
+
+            var previews = await MediaMapper.BuildProfilePreviewMapAsync(
+                blockedIds,
+                profileMedia,
+                _minio,
+                cancellationToken);
+
+            var result = blocked.Select(entry =>
+            {
+                previews.TryGetValue(entry.BlackId, out var preview);
+                preview ??= new ProfilePreviewMedia();
+
+                return new BlackListDto
+                {
+                    Id = entry.Black.Id,
+                    Login = entry.Black.Login,
+                    Tag = entry.Black.Tag,
+                    AvatarUrl = preview.Url,
+                    AvatarIsVideo = preview.IsVideo
+                };
+            }).ToList();
 
             return new ApiResponse<List<BlackListDto>>
             {

@@ -1,11 +1,9 @@
-﻿using System.Security.Claims;
-
-using MediatR;
+﻿using MediatR;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
+using PostService.Api.Extensions;
 using PostService.Application.DTO;
 using PostService.Application.MediatR.CreatePost;
 using PostService.Application.MediatR.DeletePost;
@@ -22,241 +20,203 @@ using PostService.Application.MediatR.UpdatePost;
 namespace PostService.Api.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("")]
     public class PostController : ControllerBase
     {
         private readonly IMediator _mediator;
-        private readonly ILogger<PostController> _logger;
 
-        public PostController(IMediator mediator, ILogger<PostController> logger)
+        public PostController(IMediator mediator)
         {
             _mediator = mediator;
-            _logger = logger;
         }
 
-        [Authorize]
         [HttpPost("createpost")]
-        public async Task<IActionResult> CreatePost(
-            [FromBody] CreatePostRequest request)
+        public async Task<IActionResult> CreatePost([FromBody] CreatePostRequest request)
         {
-            _logger.LogInformation("🔥 HIT /createpost endpoint");
-
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim is null)
-            {
-                _logger.LogWarning("❌ Unauthorized: no userId claim");
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
-            }
 
-            if (string.IsNullOrWhiteSpace(request.Description))
+            var result = await _mediator.Send(new CreatePostCommand
             {
-                _logger.LogWarning("❌ Empty description");
-                return BadRequest(new { error = "DESCRIPTION_REQUIRED" });
-            }
-
-            _logger.LogInformation("📦 Creating post for user {UserId}", userIdClaim.Value);
-
-            var command = new CreatePostCommand
-            {
-                UserId = Guid.Parse(userIdClaim.Value),
-                Description = request.Description.Trim()
-            };
-
-            var result = await _mediator.Send(command);
-
-            _logger.LogInformation("✅ Post created successfully");
+                UserId = userId.Value,
+                Description = request.Description
+            });
 
             return Ok(result);
         }
-        [Authorize]
-        [HttpGet("user/{userId}/cards")]
-        public async Task<IActionResult> GetUserPostsProfile(Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+
+        [HttpGet("user/{userId:guid}/cards")]
+        public async Task<IActionResult> GetUserPostsProfile(
+            Guid userId,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var query = new GetUserPostsQuery
+            var result = await _mediator.Send(new GetUserPostsQuery
             {
                 UserId = userId,
                 Page = page,
                 PageSize = pageSize
-            };
-
-            var result = await _mediator.Send(query);
+            });
 
             return Ok(result);
         }
-        [Authorize]
-        [HttpGet("user/{userId}/posts")]
-        public async Task<IActionResult> GetUserPostsFeed( Guid userId,[FromQuery] int page = 1,[FromQuery] int pageSize = 10)
-        {
-            var currentUserId = Guid.Parse(
-                User.FindFirst(ClaimTypes.NameIdentifier)!.Value
-            );
 
-            var query = new GetUserPostsFeedQuery
+        [HttpGet("user/{userId:guid}/posts")]
+        public async Task<IActionResult> GetUserPostsFeed(
+            Guid userId,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            var currentUserId = User.GetUserId();
+            if (currentUserId is null)
+                return Unauthorized();
+
+            var result = await _mediator.Send(new GetUserPostsFeedQuery
             {
                 UserId = userId,
-                CurrentUserId = currentUserId,
+                CurrentUserId = currentUserId.Value,
                 Page = page,
                 PageSize = pageSize
-            };
-
-            var result = await _mediator.Send(query);
+            });
 
             return Ok(result);
         }
-        [Authorize]
-        [HttpPost("{postId}/like")]
+
+        [HttpPost("{postId:guid}/like")]
         public async Task<IActionResult> LikePost(Guid postId)
         {
-            var userId = Guid.Parse(
-                User.FindFirst(ClaimTypes.NameIdentifier)!.Value
-            );
+            var userId = User.GetUserId();
+            if (userId is null)
+                return Unauthorized();
 
-            var command = new LikePostCommand
+            var result = await _mediator.Send(new LikePostCommand
             {
                 PostId = postId,
-                UserId = userId
-            };
-
-            var result = await _mediator.Send(command);
+                UserId = userId.Value
+            });
 
             return Ok(result);
         }
 
-        [Authorize]
-        [HttpDelete("{postId}/like")]
+        [HttpDelete("{postId:guid}/like")]
         public async Task<IActionResult> UnlikePost(Guid postId)
         {
-            var userId = Guid.Parse(
-                User.FindFirst(ClaimTypes.NameIdentifier)!.Value
-            );
+            var userId = User.GetUserId();
+            if (userId is null)
+                return Unauthorized();
 
-            var command = new UnlikePostCommand
+            var result = await _mediator.Send(new UnlikePostCommand
             {
                 PostId = postId,
-                UserId = userId
-            };
-
-            var result = await _mediator.Send(command);
+                UserId = userId.Value
+            });
 
             return Ok(result);
         }
 
-        [Authorize]
-        [HttpPost("{postId}/favorite")]
+        [HttpPost("{postId:guid}/favorite")]
         public async Task<IActionResult> FavoritePost(Guid postId)
         {
-            var userId = Guid.Parse(
-                User.FindFirst(ClaimTypes.NameIdentifier)!.Value
-            );
+            var userId = User.GetUserId();
+            if (userId is null)
+                return Unauthorized();
 
-            var command = new FavoritePostCommand
+            var result = await _mediator.Send(new FavoritePostCommand
             {
                 PostId = postId,
-                UserId = userId
-            };
-
-            var result = await _mediator.Send(command);
+                UserId = userId.Value
+            });
 
             return Ok(result);
         }
 
-        [Authorize]
-        [HttpDelete("{postId}/favorite")]
+        [HttpDelete("{postId:guid}/favorite")]
         public async Task<IActionResult> UnfavoritePost(Guid postId)
         {
-            var userId = Guid.Parse(
-                User.FindFirst(ClaimTypes.NameIdentifier)!.Value
-            );
+            var userId = User.GetUserId();
+            if (userId is null)
+                return Unauthorized();
 
-            var command = new UnfavoritePostCommand
+            var result = await _mediator.Send(new UnfavoritePostCommand
             {
                 PostId = postId,
-                UserId = userId
-            };
-
-            var result = await _mediator.Send(command);
+                UserId = userId.Value
+            });
 
             return Ok(result);
         }
-        [Authorize]
-        [HttpGet("favorites")]
-        public async Task<IActionResult> GetFavoritePosts([FromQuery] int page = 1,[FromQuery] int pageSize = 12)
-        {
-            var userId = Guid.Parse(
-                User.FindFirst(ClaimTypes.NameIdentifier)!.Value
-            );
 
-            var query = new GetFavoritePostsQuery
+        [HttpGet("favorites")]
+        public async Task<IActionResult> GetFavoritePosts(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 12)
+        {
+            var userId = User.GetUserId();
+            if (userId is null)
+                return Unauthorized();
+
+            var result = await _mediator.Send(new GetFavoritePostsQuery
             {
-                UserId = userId,
+                UserId = userId.Value,
                 Page = page,
                 PageSize = pageSize
-            };
-
-            var result = await _mediator.Send(query);
+            });
 
             return Ok(result);
         }
-        [Authorize]
+
         [HttpGet("liked")]
         public async Task<IActionResult> GetLikedPosts(
-         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 12)
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 12)
         {
-            var userId = Guid.Parse(
-                User.FindFirst(ClaimTypes.NameIdentifier)!.Value
-            );
+            var userId = User.GetUserId();
+            if (userId is null)
+                return Unauthorized();
 
-            var query = new GetLikedPostsQuery
+            var result = await _mediator.Send(new GetLikedPostsQuery
             {
-                UserId = userId,
+                UserId = userId.Value,
                 Page = page,
                 PageSize = pageSize
-            };
-
-            var result = await _mediator.Send(query);
+            });
 
             return Ok(result);
         }
-        [Authorize]
-        [HttpPut("{postId}")]
-        public async Task<IActionResult> UpdatePost(
-    Guid postId,
-    [FromBody] UpdatePostRequest request)
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (userId == null)
+        [HttpPut("{postId:guid}")]
+        public async Task<IActionResult> UpdatePost(
+            Guid postId,
+            [FromBody] UpdatePostRequest request)
+        {
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
 
-            var command = new UpdatePostCommand
+            var result = await _mediator.Send(new UpdatePostCommand
             {
                 PostId = postId,
-                UserId = userId,
+                UserId = userId.Value,
                 Request = request
-            };
-
-            var result = await _mediator.Send(command);
+            });
 
             return Ok(result);
         }
-        [Authorize]
-        [HttpDelete("{postId}")]
+
+        [HttpDelete("{postId:guid}")]
         public async Task<IActionResult> DeletePost(Guid postId)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (userId == null)
+            var userId = User.GetUserId();
+            if (userId is null)
                 return Unauthorized();
 
-            var command = new DeletePostCommand
+            var result = await _mediator.Send(new DeletePostCommand
             {
                 PostId = postId,
-                UserId = userId
-            };
-
-            var result = await _mediator.Send(command);
+                UserId = userId.Value
+            });
 
             return Ok(result);
         }

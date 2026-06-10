@@ -7,8 +7,6 @@ export interface PostFull {
   description: string;
   createdAt: string;
 
-
-
   media: PostMedia[];
 
   likesCount: number;
@@ -17,4 +15,9 @@ export interface PostFull {
 
   isLiked: boolean;
   isFavorite: boolean;
+
+  userLogin?: string;
+  userTag?: string;
+  userAvatar?: string | null;
+  isFriend?: boolean;
 }

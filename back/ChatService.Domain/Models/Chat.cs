@@ -14,6 +14,9 @@ namespace ChatService.Domain.Models
 
         public ChatType Type { get; set; }
 
+        /// <summary>Открытая группа — видна в поиске, можно вступить без приглашения.</summary>
+        public bool IsPublic { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         // Navigation

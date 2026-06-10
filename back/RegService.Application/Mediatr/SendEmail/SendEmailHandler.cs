@@ -1,47 +1,74 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MediatR;
+
+using Microsoft.Extensions.Logging;
+
 using RegService.Domain.IRepository;
-using MediatR;
-using Shared.Application.Interfaces;
+
 using Shared.Application.Contracts;
+using Shared.Application.Interfaces;
+using Shared.Application.Validation;
 
 namespace RegService.Application.Mediatr.SendEmail
 {
     public class SendEmailHandler : IRequestHandler<SendEmailCommandCode, ApiResponse<string>>
     {
         private readonly IRegRepository _regRepository;
-        private readonly ICodeGenerate _code;
+        private readonly ICodeGenerate _codeGenerator;
         private readonly IEmailSender _emailSender;
-        public SendEmailHandler(IRegRepository regRepository, ICodeGenerate code, IEmailSender emailsender)
+        private readonly ILogger<SendEmailHandler> _logger;
+
+        public SendEmailHandler(
+            IRegRepository regRepository,
+            ICodeGenerate codeGenerator,
+            IEmailSender emailSender,
+            ILogger<SendEmailHandler> logger)
         {
             _regRepository = regRepository;
-            _code = code;
-            _emailSender = emailsender;
+            _codeGenerator = codeGenerator;
+            _emailSender = emailSender;
+            _logger = logger;
         }
 
-        public async Task<ApiResponse<string>> Handle(SendEmailCommandCode command, CancellationToken cancellationToken)
+        public async Task<ApiResponse<string>> Handle(
+            SendEmailCommandCode command,
+            CancellationToken cancellationToken)
         {
-            var code = _code.GenerateAlphaNumericCode();
-            var success = await _regRepository.CreateVerificationCode(command.Email, code, cancellationToken);
-            var apiResponse = new ApiResponse<string>();
-            apiResponse.Success = success;
-            if (success)
+            if (!InputValidator.IsValidEmail(command.Email))
             {
-                await _emailSender.SendConfirmationCodeAsync(command.Email, code);
-                apiResponse.Data = command.Email;
+                return Fail("INVALID_EMAIL", "Некорректный email");
             }
-            else
+
+            var email = InputValidator.NormalizeEmail(command.Email);
+            var code = _codeGenerator.GenerateAlphaNumericCode();
+
+            var canSend = await _regRepository.CreateVerificationCode(email, code, cancellationToken);
+            if (!canSend)
             {
-                apiResponse.Error =  new ApiError
-                {
-                    Code ="IS_EMAIL_BUSY",
-                    Message = "Email занят,Попробуйте другой"
-                }; 
+                return Fail("EMAIL_BUSY", "Email уже зарегистрирован");
             }
-            return apiResponse;
+
+            try
+            {
+                await _emailSender.SendConfirmationCodeAsync(email, code);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send verification email to {Email}", email);
+                return Fail("EMAIL_SEND_FAILED", "Не удалось отправить код на email");
+            }
+
+            return new ApiResponse<string>
+            {
+                Success = true,
+                Data = "CODE_SENT"
+            };
         }
+
+        private static ApiResponse<string> Fail(string code, string message) =>
+            new()
+            {
+                Success = false,
+                Error = new ApiError { Code = code, Message = message }
+            };
     }
 }

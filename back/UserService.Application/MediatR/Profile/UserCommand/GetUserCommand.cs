@@ -1,18 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using MediatR;
+﻿using MediatR;
 
 using Shared.Application.Contracts;
 
-using UserService.Domain.Models;
+using UserService.Application.DTO;
 
 namespace UserService.Application.MediatR.UserCommand
 {
-    public class GetUserCommand : IRequest<ApiResponse<User>>
+    public class GetUserCommand : IRequest<ApiResponse<UserProfileDto>>
     {
         public Guid UserId { get; set; }
     }

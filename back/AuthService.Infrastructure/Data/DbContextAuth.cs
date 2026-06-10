@@ -22,6 +22,7 @@ namespace AuthService.Infrastructure.Data
             modelBuilder.ApplyConfiguration(new VerificationCodeConfigure());
             modelBuilder.ApplyConfiguration(new UserSessionTableConfigure());
             modelBuilder.ApplyConfiguration(new ResetCodeConfigure());
+            modelBuilder.Ignore<UserEmailHistory>();
         }
     }
 }

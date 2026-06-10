@@ -53,7 +53,7 @@ export class SocialService {
 }
 // SocialService.ts
 
-async renameFriend(dto: RenameFriendDto): Promise<ApiResponse<boolean>> {
-  return await api.renameFriend(dto);
-}
+  async renameFriend(dto: RenameFriendDto): Promise<ApiResponse<string>> {
+    return await api.renameFriend(dto);
+  }
 }

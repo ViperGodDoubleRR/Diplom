@@ -16,6 +16,8 @@ namespace AuthService.Domain.Models
 
         public string RefreshToken { get; set; } = string.Empty;
 
+        public string? TokenFingerprint { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         public DateTime ExpiresAt { get; set; }

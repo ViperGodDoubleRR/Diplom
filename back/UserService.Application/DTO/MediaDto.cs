@@ -14,5 +14,6 @@ namespace UserService.Application.DTO
         public string MediaType { get; set; } = null!;
         public string ContentType { get; set; } = null!;
         public string Url { get; set; } = null!;
+        public DateTime CreatedAt { get; set; }
     }
 }

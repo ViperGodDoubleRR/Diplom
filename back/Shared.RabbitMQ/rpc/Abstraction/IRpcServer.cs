@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Threading;
 using System.Threading.Tasks;
 
 namespace Shared.RabbitMQ.rpc.Abstraction
 {
     public interface IRpcServer
     {
-        void Start(string rpcQueue);
+        Task StartAsync(string rpcQueue, CancellationToken cancellationToken = default);
     }
-
 }

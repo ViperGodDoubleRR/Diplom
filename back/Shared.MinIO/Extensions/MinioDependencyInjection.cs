@@ -15,10 +15,10 @@ namespace Shared.MinIO.Extensions
             this IServiceCollection services,
             IConfiguration config)
         {
-            var options = new MinioOptions();
+            services.Configure<MinioOptions>(config.GetSection("Minio"));
 
-            config.GetSection("Minio")
-                .Bind(options);
+            var options = new MinioOptions();
+            config.GetSection("Minio").Bind(options);
 
             var client = new MinioClient()
                 .WithEndpoint(options.Endpoint)

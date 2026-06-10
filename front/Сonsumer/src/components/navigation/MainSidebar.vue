@@ -23,7 +23,11 @@
     </div>
 
     <div class="user-box">
-      <img :src="userAvatar" class="avatar" />
+      <UserAvatar
+        avatar-class="avatar"
+        :name="userName"
+        :src="userAvatar"
+      />
 
       <div>
         <h3>{{ userName }}</h3>
@@ -37,6 +41,8 @@
 import { useRouter, useRoute } from "vue-router"
 import { computed } from "vue"
 import { useUserStore } from "@/store/userStore"
+import { pickAvatarPhotoUrl } from "@/utils/profileValidation"
+import UserAvatar from "@/components/ui/UserAvatar.vue"
 
 const router = useRouter()
 const route = useRoute()
@@ -55,18 +61,15 @@ function isActive(path: string) {
 const userName = computed(() => userStore.user?.login ?? "User")
 const userTag = computed(() => userStore.user?.tag ?? "unknown")
 
-const userAvatar = computed(() =>
-  userStore.user?.media?.[0]?.url ??
-  "https://i.pravatar.cc/150"
-)
+const userAvatar = computed(() => pickAvatarPhotoUrl(userStore.user?.media))
 </script>
 
 <style scoped>
 .sidebar {
+  flex-shrink: 0;
   width: 290px;
-  min-height: 100vh;
-
-  padding: 30px 20px;
+  height: 100vh;
+  padding: 28px 20px;
   box-sizing: border-box;
 
   display: flex;
@@ -79,6 +82,8 @@ const userAvatar = computed(() =>
   backdrop-filter: blur(16px);
 
   color: white;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* LOGO */
@@ -144,14 +149,17 @@ const userAvatar = computed(() =>
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.avatar {
+.user-box :deep(.avatar),
+.user-box :deep(.user-avatar),
+.user-box :deep(.initials) {
   width: 52px;
   height: 52px;
-
-  border-radius: 50%;
-  object-fit: cover;
-
+  flex-shrink: 0;
   border: 2px solid rgba(65, 99, 252, 0.4);
+}
+
+.user-box :deep(.initials) {
+  font-size: 1rem;
 }
 
 h3 {
@@ -163,5 +171,22 @@ p {
   margin: 0;
   font-size: 12px;
   opacity: 0.6;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 240px;
+    padding: 20px 14px;
+  }
+
+  .logo {
+    font-size: 26px;
+    margin-bottom: 32px;
+  }
+
+  .menu-btn {
+    height: 50px;
+    font-size: 16px;
+  }
 }
 </style>

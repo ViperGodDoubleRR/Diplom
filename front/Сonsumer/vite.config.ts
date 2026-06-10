@@ -15,4 +15,19 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  cacheDir: 'node_modules/.vite',
+  server: {
+    headers: {
+      'Cache-Control': 'no-store',
+    },
+    hmr: {
+      overlay: true,
+    },
+  },
+  optimizeDeps: {
+    holdUntilCrawlEnd: false,
+  },
+  build: {
+    emptyOutDir: true,
+  },
 })

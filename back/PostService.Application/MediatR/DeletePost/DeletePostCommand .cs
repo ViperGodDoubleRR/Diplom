@@ -1,17 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MediatR;
 
-using MediatR;
+using Shared.Application.Contracts;
 
 namespace PostService.Application.MediatR.DeletePost
 {
-    public class DeletePostCommand : IRequest<bool>
+    public class DeletePostCommand : IRequest<ApiResponse<bool>>
     {
         public Guid PostId { get; set; }
 
-        public string UserId { get; set; } = string.Empty;
+        public Guid UserId { get; set; }
     }
 }

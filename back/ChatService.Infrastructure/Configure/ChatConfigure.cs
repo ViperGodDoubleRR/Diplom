@@ -17,6 +17,10 @@ namespace ChatService.Infrastructure.Configure
             builder.Property(x => x.Type)
                 .IsRequired();
 
+            builder.Property(x => x.IsPublic)
+                .IsRequired()
+                .HasDefaultValue(false);
+
             builder.Property(x => x.CreatedAt)
                 .IsRequired();
 

@@ -1,6 +1,7 @@
 <template>
-  <Transition name="modal">
-    <div v-if="modelValue" class="overlay" @click.self="close">
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="modelValue" class="overlay" @click.self="close">
       <div class="modal">
 
         <!-- HEADER -->
@@ -19,12 +20,12 @@
         <div class="form">
 
           <div class="field">
-            <label>Имя</label>
+            <label>Логин</label>
             <input v-model="form.name" type="text" maxlength="32" />
           </div>
 
           <div class="field">
-            <label>Тэг</label>
+            <label>Тэг (необязательно)</label>
             <div class="tag-input">
               <span>@</span>
               <input v-model="form.tag" type="text" maxlength="32" />
@@ -33,8 +34,10 @@
 
           <div class="field">
             <label>Описание</label>
-            <textarea v-model="form.description" rows="5" maxlength="250" />
+            <textarea v-model="form.description" rows="5" maxlength="1000" />
           </div>
+
+          <p v-if="validationError" class="validation-error">{{ validationError }}</p>
 
         </div>
 
@@ -50,13 +53,15 @@
         </div>
 
       </div>
-    </div>
-  </Transition>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
 import { reactive, computed, watch } from "vue";
 import type { ProfileForm } from "@/interface/models/profile/ProfileForm";
+import { validateProfileLogin, validateProfileTag } from "@/utils/profileValidation";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -92,10 +97,11 @@ watch(
   { immediate: true }
 );
 
-const isValid = computed(() =>
-  form.name.trim().length >= 2 &&
-  form.tag.trim().length >= 2
-);
+const validationError = computed(() => {
+  return validateProfileLogin(form.name) ?? validateProfileTag(form.tag);
+});
+
+const isValid = computed(() => validationError.value === null);
 
 function close() {
   if (props.loading) return;
@@ -161,13 +167,13 @@ function save() {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  z-index: 50;
+  z-index: 10000;
 }
 
 /* MODAL */
@@ -296,6 +302,12 @@ function save() {
 
 .tag-input input {
   padding-left: 24px;
+}
+
+.validation-error {
+  color: #ff8a8a;
+  font-size: 13px;
+  margin: 0;
 }
 
 /* ACTIONS */

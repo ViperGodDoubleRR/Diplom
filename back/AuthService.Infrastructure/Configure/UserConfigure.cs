@@ -10,6 +10,17 @@ namespace AuthService.Infrastructure.Configure
         public void Configure(EntityTypeBuilder<User> builder)
         {
             builder.HasKey(u => u.Id);
+
+            builder.HasIndex(u => u.Email).IsUnique();
+            builder.HasIndex(u => u.Login).IsUnique();
+
+            builder.Property(u => u.Email)
+                .HasMaxLength(254)
+                .IsRequired();
+
+            builder.Property(u => u.Login)
+                .HasMaxLength(32)
+                .IsRequired();
             builder
                 .HasMany(u => u.VerificationCodes)
                 .WithOne(v => v.UserID)

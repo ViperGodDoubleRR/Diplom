@@ -10,6 +10,7 @@ namespace Shared.MinIO.Interfaces
 {
     public interface IMinioService
     {
+        Task EnsureBucketAsync(string bucket, CancellationToken cancellationToken = default);
         Task<UploadFileResult> UploadFileAsync(Stream file, string fileName, string contentType, string bucket);
         Task DeleteFileAsync(string fileName, string bucket);
         Task<string> GetFileUrlAsync(string fileName, string bucket);

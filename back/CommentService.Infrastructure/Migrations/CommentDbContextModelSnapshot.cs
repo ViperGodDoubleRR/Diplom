@@ -100,7 +100,8 @@ namespace CommentService.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CommentId");
+                    b.HasIndex("CommentId")
+                        .IsUnique();
 
                     b.ToTable("CommentMedia");
                 });

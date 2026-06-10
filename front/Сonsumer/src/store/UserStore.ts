@@ -1,4 +1,7 @@
 import { defineStore } from "pinia";
+
+import { resetChatHubSession, stopChatHub } from "@/composables/useChatHub";
+import { getApiData, isApiSuccess } from "@/utils/apiHelpers";
 import type { User } from "@/interface/models/profile/user";
 import { UserService } from "@/service/userService";
 import type { UpdateUserDto } from "@/interface/DTO/profile/UpdateUserDto";
@@ -18,45 +21,57 @@ export const useUserStore = defineStore("user", {
   },
 
   actions: {
-    // =========================
-    // GET USER
-    // =========================
     async getMy() {
-  try {
-    this.loading = true;
+      try {
+        this.loading = true;
 
-    const response = await service.getMe();
+        const response = await service.getMe();
 
-    if (response.success && response.data) {
+        const profile = getApiData(response);
+
+        if (isApiSuccess(response) && profile) {
+          const mediaStore = useMediaStore();
+          const mediaRes = await mediaStore.getMyMedia();
+
+          this.user = {
+            ...profile,
+            media: isApiSuccess(mediaRes) ? (getApiData(mediaRes) ?? []) : [],
+          };
+        } else {
+          this.user = null;
+        }
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async refreshMedia() {
+      if (!this.user) return;
+
       const mediaStore = useMediaStore();
       const mediaRes = await mediaStore.getMyMedia();
 
-      this.user = {
-        ...response.data,
-        media: mediaRes.success ? (mediaRes.data ?? []) : [],
-      };
-    } else {
-      this.user = null;
-    }
-  } finally {
-    this.loading = false;
-  }
-},
+      if (mediaRes.success) {
+        this.user = {
+          ...this.user,
+          media: mediaRes.data ?? [],
+        };
+      }
+    },
 
-    // =========================
-    // UPDATE PROFILE
-    // =========================
     async updateProfile(dto: UpdateUserDto) {
       try {
         this.updateLoading = true;
 
         const response = await service.updateMe(dto);
 
-        if (response.success && response.data) {
+        const profile = getApiData(response);
+
+        if (isApiSuccess(response) && profile) {
           this.user = {
-  ...response.data,
-  media: this.user?.media ?? [],
-};
+            ...profile,
+            media: this.user?.media ?? [],
+          };
         }
 
         return response;
@@ -68,8 +83,6 @@ export const useUserStore = defineStore("user", {
     setUser(user: User) {
       this.user = {
         ...user,
-        friends: user.friends ?? [],
-        blackList: user.blackList ?? [],
         media: user.media ?? [],
       };
     },
@@ -82,6 +95,8 @@ export const useUserStore = defineStore("user", {
       this.clearUser();
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
+      void stopChatHub();
+      resetChatHubSession();
     },
   },
 });

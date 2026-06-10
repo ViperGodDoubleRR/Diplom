@@ -19,26 +19,35 @@ const userStore = useUserStore();
 const socialStore = useSocialStore();
 
 onMounted(async () => {
-  await userStore.getMy();
-
-  await Promise.all([
-    socialStore.getFriends(),
-    socialStore.getBlocked(),
-  ]);
+  try {
+    await userStore.getMy();
+    await Promise.all([
+      socialStore.getFriends(),
+      socialStore.getBlocked(),
+    ]);
+  } catch (error) {
+    console.error("Failed to load user profile:", error);
+  }
 });
 </script>
 
 <style scoped>
 .layout {
-  width: 100%;
-  min-height: 100vh;
   display: flex;
-  background-color: #0F0F0F;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #0f0f0f;
 }
 
 .main-content {
   flex: 1;
-  padding: 30px;
+  min-width: 0;
+  height: 100%;
+  padding: clamp(16px, 2.5vw, 32px);
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 </style>

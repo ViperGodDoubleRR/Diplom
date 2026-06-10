@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +23,7 @@ public class RabbitRpcServer : IRpcServer
         _provider = provider;
     }
 
-    public async void Start(string rpcQueue)
+    public async Task StartAsync(string rpcQueue, CancellationToken cancellationToken = default)
     {
         var channel = await _connection.CreateChannelAsync();
 

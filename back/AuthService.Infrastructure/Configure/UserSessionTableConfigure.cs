@@ -10,7 +10,8 @@ namespace AuthService.Infrastructure.Configure
         public void Configure(EntityTypeBuilder<UserSession> builder)
         {
             builder.HasKey(tt => tt.Id);
-           
+
+            builder.Ignore(x => x.TokenFingerprint);
         }
     }
 }

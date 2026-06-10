@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 using UserService.Domain.IRepository;
 using UserService.Domain.Models;
@@ -21,127 +15,116 @@ namespace UserService.Infrastructure.EfRepository
             _context = context;
         }
 
-        // =========================
-        // FRIENDS
-        // =========================
-
-        public async Task<List<FriendList>> GetFriendsAsync(Guid userId)
-        {
-            return await _context.FriendLists
+        public Task<List<FriendList>> GetFriendsAsync(Guid userId, CancellationToken cancellationToken = default) =>
+            _context.FriendLists
                 .Include(x => x.Friend)
                 .Where(x => x.MyId == userId)
-                .ToListAsync();
-        }
+                .ToListAsync(cancellationToken);
 
-        public async Task AddFriendAsync(FriendList friend)
-        {
-            await _context.FriendLists.AddAsync(friend);
-
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task<bool> IsFriendExistsAsync(
-            Guid myId,
-            Guid friendId)
-        {
-            return await _context.FriendLists.AnyAsync(x =>
-                x.MyId == myId &&
-                x.FriendId == friendId);
-        }
-        // =========================
-        // BLOCKED
-        // =========================
-
-        public async Task<List<BlackList>> GetBlockedAsync(Guid userId)
-        {
-            return await _context.BlackLists
+        public Task<List<BlackList>> GetBlockedAsync(Guid userId, CancellationToken cancellationToken = default) =>
+            _context.BlackLists
                 .Include(x => x.Black)
                 .Where(x => x.MyId == userId)
-                .ToListAsync();
-        }
-        public async Task AddBlockAsync(BlackList entity)
+                .ToListAsync(cancellationToken);
+
+        public async Task AddFriendAsync(FriendList friend, CancellationToken cancellationToken = default)
         {
-            await _context.BlackLists.AddAsync(entity);
-
-            await _context.SaveChangesAsync();
+            await _context.FriendLists.AddAsync(friend, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<bool> IsBlockedExistsAsync(Guid myId,Guid blackId)
+        public Task<bool> IsFriendExistsAsync(
+            Guid myId,
+            Guid friendId,
+            CancellationToken cancellationToken = default) =>
+            _context.FriendLists.AnyAsync(
+                x => x.MyId == myId && x.FriendId == friendId,
+                cancellationToken);
+
+        public async Task AddBlockAsync(BlackList entity, CancellationToken cancellationToken = default)
         {
-            return await _context.BlackLists.AnyAsync(x =>
-                x.MyId == myId &&
-                x.BlackId == blackId);
+            await _context.BlackLists.AddAsync(entity, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<BlackList?> GetBlockAsync(Guid myId,Guid blackId)
-        {
-            return await _context.BlackLists
-                .FirstOrDefaultAsync(x =>
-                    x.MyId == myId &&
-                    x.BlackId == blackId);
-        }
+        public Task<bool> IsBlockedExistsAsync(
+            Guid myId,
+            Guid blackId,
+            CancellationToken cancellationToken = default) =>
+            _context.BlackLists.AnyAsync(
+                x => x.MyId == myId && x.BlackId == blackId,
+                cancellationToken);
 
-        public async Task RemoveBlockAsync(
-            BlackList entity)
+        public Task<bool> IsBlockedBetweenAsync(
+            Guid userA,
+            Guid userB,
+            CancellationToken cancellationToken = default) =>
+            _context.BlackLists.AnyAsync(
+                x => (x.MyId == userA && x.BlackId == userB) ||
+                     (x.MyId == userB && x.BlackId == userA),
+                cancellationToken);
+
+        public Task<BlackList?> GetBlockAsync(
+            Guid myId,
+            Guid blackId,
+            CancellationToken cancellationToken = default) =>
+            _context.BlackLists.FirstOrDefaultAsync(
+                x => x.MyId == myId && x.BlackId == blackId,
+                cancellationToken);
+
+        public async Task RemoveBlockAsync(BlackList entity, CancellationToken cancellationToken = default)
         {
             _context.BlackLists.Remove(entity);
-
-            await _context.SaveChangesAsync();
-        }
-        public async Task<FriendList?> GetFriendAsync(
-    Guid myId,
-    Guid friendId)
-        {
-            return await _context.FriendLists
-                .FirstOrDefaultAsync(x =>
-                    x.MyId == myId &&
-                    x.FriendId == friendId);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task RemoveFriendAsync(
-            FriendList friend)
+        public Task<FriendList?> GetFriendAsync(
+            Guid myId,
+            Guid friendId,
+            CancellationToken cancellationToken = default) =>
+            _context.FriendLists.FirstOrDefaultAsync(
+                x => x.MyId == myId && x.FriendId == friendId,
+                cancellationToken);
+
+        public async Task RemoveFriendAsync(FriendList friend, CancellationToken cancellationToken = default)
         {
             _context.FriendLists.Remove(friend);
-
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
-        public async Task<List<User>> SearchUsersAsync(string search,int page,  int pageSize,Guid myId)
+
+        public async Task UpdateFriendAsync(FriendList friend, CancellationToken cancellationToken = default)
+        {
+            _context.FriendLists.Update(friend);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        public Task<List<User>> SearchUsersAsync(
+            string? search,
+            int page,
+            int pageSize,
+            IReadOnlyCollection<Guid> excludeUserIds,
+            CancellationToken cancellationToken = default)
         {
             var query = _context.Users
                 .Include(u => u.MediaUsers)
                 .AsQueryable();
 
-            // исключаем себя
-            query = query.Where(u => u.Id != myId);
+            if (excludeUserIds.Count > 0)
+                query = query.Where(u => !excludeUserIds.Contains(u.Id));
 
-            // поиск
             if (!string.IsNullOrWhiteSpace(search))
             {
+                var term = search.Trim();
                 query = query.Where(u =>
-                    u.Login.Contains(search) ||
-                    (u.Tag != null && u.Tag.Contains(search)));
+                    u.Login.Contains(term) ||
+                    (u.Tag != null && u.Tag.Contains(term)));
             }
 
-            // друзья
-            var friendsIds = await _context.FriendLists
-                .Where(f => f.MyId == myId)
-                .Select(f => f.FriendId)
-                .ToListAsync();
-
-            query = query.Where(u => !friendsIds.Contains(u.Id));
-
-            // блоки
-            var blockedIds = await _context.BlackLists
-                .Where(b => b.MyId == myId)
-                .Select(b => b.BlackId)
-                .ToListAsync();
-
-            query = query.Where(u => !blockedIds.Contains(u.Id));
-
-            return await query
+            return query
+                .OrderBy(u => u.Login)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
         }
     }
 }
